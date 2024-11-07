@@ -1,0 +1,43 @@
+---
+- name: Deploy Application on Azure VM
+  hosts: all
+  become: yes
+  tasks:
+    - name: Update and install Docker
+      apt:
+        update_cache: yes
+        name:
+          - docker.io
+        state: present
+
+    - name: Ensure Docker service is started and enabled
+      service:
+        name: docker
+        state: started
+        enabled: yes
+
+    - name: Login to Docker Hub
+      docker_login:
+        username: "{{ dockerhub_username }}"
+        password: "{{ dockerhub_password }}"
+
+    - name: Pull Docker image from Docker Hub
+      docker_image:
+        name: armanlamba/sharks
+        tag: latest
+        source: pull
+
+    - name: Stop existing container if it exists
+      docker_container:
+        name: sharks_app
+        state: absent
+        force: yes
+
+    - name: Run Docker container
+      docker_container:
+        name: sharks_app
+        image: armanlamba/sharks:latest
+        state: started
+        restart_policy: always
+        ports:
+          - "80:80"
