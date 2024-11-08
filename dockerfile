@@ -5,21 +5,21 @@ FROM node:18-alpine AS build
 WORKDIR /app
 
 # Copy and install dependencies for frontend
-COPY Frontend/package*.json ./Frontend/
+COPY /var/www/frontend/package*.json ./Frontend/
 RUN cd Frontend && npm ci
 
 # Copy frontend code and build it
-COPY Frontend ./Frontend
+COPY /var/www/frontend ./Frontend
 RUN cd Frontend && npm run build
 
 # Copy and install dependencies for backend
-COPY Backend/package*.json ./Backend/
+COPY /var/www/backend/package*.json ./Backend/
 RUN cd Backend && npm ci --only=production
 
 # Copy backend code
-COPY Backend ./Backend
+COPY /var/www/backend ./Backend
 
-# Move the built frontend to the backend's public or static directory (adjust path as needed)
+# Move the built frontend to the backend's public or static directory
 RUN cp -r Frontend/build Backend/public
 
 # Expose backend port
