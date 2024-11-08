@@ -15,7 +15,7 @@ jobs:
     name: Terraform Apply
     runs-on: ubuntu-latest
     outputs:
-      public_ip: ${{ steps.get_ip.outputs.public_ip }}
+      public_ip: ${{ steps.get_ip.outputs.public_ip }} 
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -72,7 +72,9 @@ jobs:
           IP=$(terraform output -raw public_ip | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | head -n 1)
           echo "Debug: Retrieved IP value is $IP"
           echo "public_ip=$IP" >> $GITHUB_ENV
+          echo "public_ip"
           # echo "::set-output name=public_ip::$IP"
+          echo "::set-output name=public_ip::$IP"  # Sets as step-level output for compatibility
 
 
   ansible_deploy:
@@ -94,7 +96,9 @@ jobs:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
       - name: Debug Public IP
-        run: echo "Public IP:${{ needs.terraform_apply.outputs.public_ip }}"
+        run: |
+          echo "Public IP from terraform_apply:"
+          echo ${{ needs.terraform_apply.outputs.public_ip }} 
 
       - name: Create Ansible Inventory
         run: |
