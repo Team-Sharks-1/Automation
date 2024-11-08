@@ -22,7 +22,8 @@ variable "admin_username" {
 
 variable "ssh_public_key_path" {
   description = "Path to the SSH public key"
-  default     = "~/.ssh/id_rsa.pub"
+  #default     = "~/.ssh/id_rsa.pub"
+  default     = "id_rsa"
 }
 
 variable "environment" {
