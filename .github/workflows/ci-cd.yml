@@ -80,20 +80,9 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          # Capture the output and filter out debug messages
-          public_ip=$(terraform output -raw public_ip | grep -E '^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$' || true)
+          # Get IP and set as output
+          echo "public_ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
           
-          # Verify we got a valid IP
-          if [[ $public_ip =~ ^[0-9]+\.[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            # Set the output variables
-            echo "Setting IP: ${public_ip}"
-            echo "public_ip=${public_ip}" >> "$GITHUB_OUTPUT"
-            echo "PUBLIC_IP=${public_ip}" >> "$GITHUB_ENV"
-          else
-            echo "Error: Failed to get valid IP address"
-            exit 1
-          fi
-
   ansible_deploy:
     name: Run Ansible Playbook
     runs-on: ubuntu-latest
