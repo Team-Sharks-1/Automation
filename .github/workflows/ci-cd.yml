@@ -71,11 +71,10 @@ jobs:
         run: |
           # Wait for IP to be available with retry logic
           for i in {1..6}; do
-            IP=$(terraform output -raw public_ip)
+            IP=$(terraform output -raw public_ip 2>/dev/null)  # Suppress debug output
             if [[ -n "$IP" && "$IP" != "null" ]]; then
               echo "Public IP found: $IP"
-              echo "public_ip=$IP" >> $GITHUB_ENV
-              echo "::set-output name=public_ip::$IP"
+              echo "public_ip=$IP" >> $GITHUB_ENV  # Use only GITHUB_ENV for setting env vars
               exit 0
             fi
             echo "Waiting for IP address to be available... (attempt $i of 6)"
