@@ -1,0 +1,117 @@
+# ansible/deploy.yml
+
+---
+- name: Deploy Application on Azure VM
+  hosts: all
+  become: yes
+  vars:
+    frontend_repo: "https://github.com/Team-Sharks-1/Frontend.git"
+    backend_repo: "https://github.com/Team-Sharks-1/Backend.git"
+    frontend_dir: "/var/www/frontend"
+    backend_dir: "/var/www/backend"
+    docker_image: "armanlamba/sharks:latest"
+
+  tasks:
+    - name: Update and install required packages
+      apt:
+        update_cache: yes
+        name:
+          - git
+          - docker.io
+          - python3-pip
+          - nginx
+          - nodejs
+          - npm
+        state: present
+
+    - name: Install Docker Python module
+      pip:
+        name: docker
+        state: present
+
+    - name: Start and enable Docker and Nginx services
+      service:
+        name: "{{ item }}"
+        state: started
+        enabled: yes
+      loop:
+        - docker
+        - nginx
+
+    - name: Login to Docker Hub
+      docker_login:
+        username: "{{ DOCKER_USERNAME }}"
+        password: "{{ DOCKER_PASSWORD }}"
+
+    - name: Clone Frontend repository
+      git:
+        repo: "{{ frontend_repo }}"
+        dest: "{{ frontend_dir }}"
+        update: yes
+
+    - name: Install frontend dependencies
+      shell: npm install
+      args:
+        chdir: "{{ frontend_dir }}"
+
+    - name: Build frontend application (React.js)
+      shell: npm run build
+      args:
+        chdir: "{{ frontend_dir }}"
+
+    - name: Clone Backend repository
+      git:
+        repo: "{{ backend_repo }}"
+        dest: "{{ backend_dir }}"
+        update: yes
+
+    - name: Install backend dependencies
+      shell: npm install
+      args:
+        chdir: "{{ backend_dir }}"
+
+    - name: Build and push Docker image
+      shell: |
+        cd /var/www
+        docker build -t {{ docker_image }} .
+        docker push {{ docker_image }}
+      args:
+        chdir: /var/www
+
+    - name: Pull the latest Docker image
+      docker_image:
+        name: "{{ docker_image }}"
+        source: pull
+
+    - name: Stop existing container if exists
+      docker_container:
+        name: sharks_app
+        state: absent
+        force: yes
+
+    - name: Run Docker container
+      docker_container:
+        name: sharks_app
+        image: "{{ docker_image }}"
+        state: started
+        restart_policy: always
+        ports:
+          - "3000:3000"  # Assuming the backend runs on port 3000
+
+    - name: Configure Nginx to serve the frontend and reverse proxy backend
+      template:
+        src: nginx.conf.j2
+        dest: /etc/nginx/sites-available/sharks_app
+      notify: Reload Nginx
+
+    - name: Enable Nginx site
+      file:
+        src: /etc/nginx/sites-available/sharks_app
+        dest: /etc/nginx/sites-enabled/sharks_app
+        state: link
+
+  handlers:
+    - name: Reload Nginx
+      service:
+        name: nginx
+        state: reloaded
