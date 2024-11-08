@@ -85,8 +85,8 @@
     - name: Build and push Docker image
       shell: |
         cd /var/www
-        docker build -t {{ docker_image }} -f /home/runner/work/Automation/Automation/dockerfile .
-        docker push {{ docker_image }}
+        docker build -t armanlamba/sharks:latest -f dockerfile .
+        docker push armanlamba/sharks:latest
       args:
         chdir: /var/www
 
