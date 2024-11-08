@@ -74,7 +74,8 @@ jobs:
             IP=$(terraform output -raw public_ip)
             if [[ -n "$IP" && "$IP" != "null" ]]; then
               echo "Public IP found: $IP"
-              echo "public_ip=$IP" >> $GITHUB_OUTPUT
+              echo "public_ip=$IP" >> $GITHUB_ENV
+              echo "::set-output name=public_ip::$IP"
               exit 0
             fi
             echo "Waiting for IP address to be available... (attempt $i of 6)"
@@ -82,6 +83,7 @@ jobs:
           done
           echo "Failed to get IP address after 60 seconds"
           exit 1
+
 
   ansible_deploy:
     name: Run Ansible Playbook
