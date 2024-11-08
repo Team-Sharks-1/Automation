@@ -89,7 +89,7 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          public_ip=$(terraform output -raw public_ip)
+          public_ip=$(terraform output public_ip | tr -d '"')
           echo "public_ip=${public_ip}" >> $GITHUB_ENV
 
   ansible_deploy:
