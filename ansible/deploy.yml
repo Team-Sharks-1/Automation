@@ -76,6 +76,12 @@
       args:
         chdir: "{{ backend_dir }}"
 
+    - name: Copy Dockerfile to the server
+      copy:
+        src: ../dockerfile  # Relative path to Dockerfile in your GitHub Actions environment
+        dest: /var/www/dockerfile
+
+
     - name: Build and push Docker image
       shell: |
         cd /var/www
