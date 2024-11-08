@@ -111,8 +111,8 @@ jobs:
         run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml
         env:
           ANSIBLE_HOST_KEY_CHECKING: false
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+          DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
   build_and_push_docker:
     name: Build and Push Docker Image
