@@ -48,10 +48,9 @@ jobs:
         with:
           terraform_version: 'latest' # Always uses the latest stable Terraform version
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Azure Login with PAT
+        run: |
+          echo ${{ secrets.AZURE_PAT }} | az login --service-principal --username ${{ secrets.AZURE_PAT }} --password ${{ secrets.AZURE_PAT }}
 
       - name: Terraform Init
         working-directory: infra
@@ -113,10 +112,9 @@ jobs:
         with:
           terraform_version: 'latest' # Always uses the latest stable Terraform version
 
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
+      - name: Azure Login with PAT
+        run: |
+          echo ${{ secrets.AZURE_PAT }} | az login --service-principal --username ${{ secrets.AZURE_PAT }} --password ${{ secrets.AZURE_PAT }}
 
       - name: Terraform Init
         working-directory: infra
