@@ -70,8 +70,9 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
           IP=$(terraform output -raw public_ip | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | head -n 1)
-          echo "Debug: Retrieved IP value is '$IP'"
+          echo "Debug: Retrieved IP value is $IP"
           echo "public_ip=$IP" >> $GITHUB_ENV
+          # echo "::set-output name=public_ip::$IP"
 
 
   ansible_deploy:
@@ -91,6 +92,9 @@ jobs:
         uses: webfactory/ssh-agent@v0.5.4
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Debug Public IP
+        run: echo "Public IP:${{ needs.terraform_apply.outputs.public_ip }}"
 
       - name: Create Ansible Inventory
         run: |
