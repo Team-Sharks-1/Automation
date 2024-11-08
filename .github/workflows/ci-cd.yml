@@ -69,8 +69,9 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          IP=$(terraform output -raw public_ip | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b')
+          IP=$(terraform output -raw public_ip | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | head -n 1)
           echo "Debug: Retrieved IP value is '$IP'"
+
 
 
   ansible_deploy:
