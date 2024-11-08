@@ -92,12 +92,18 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
 
+      # - name: Create Ansible Inventory
+      #   run: |
+      #     mkdir -p ansible
+      #     echo "[web]" > ansible/hosts.ini
+      #     echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
+      #     cat ansible/hosts.ini
       - name: Create Ansible Inventory
         run: |
           mkdir -p ansible
           echo "[web]" > ansible/hosts.ini
           echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
-          cat ansible/hosts.ini
+          cat ansible/hosts.ini  # Print inventory for debugging
 
 
       - name: Run Ansible Playbook
