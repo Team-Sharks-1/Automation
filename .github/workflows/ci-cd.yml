@@ -69,19 +69,8 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          # Wait for IP to be available with retry logic
-          for i in {1..6}; do
-            IP=$(terraform output -raw public_ip 2>/dev/null)  # Suppress debug output
-            if [[ -n "$IP" && "$IP" != "null" ]]; then
-              echo "Public IP found: $IP"
-              echo "public_ip=$IP" >> $GITHUB_ENV  # Use only GITHUB_ENV for setting env vars
-              exit 0
-            fi
-            echo "Waiting for IP address to be available... (attempt $i of 6)"
-            sleep 10
-          done
-          echo "Failed to get IP address after 60 seconds"
-          exit 1
+          IP=$(terraform output -raw public_ip)
+          echo "Debug: Retrieved IP value is '$IP'"  # Print the IP for debugging
 
 
   ansible_deploy:
