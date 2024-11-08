@@ -1,4 +1,4 @@
 # ansible/group_vars/all.yml
 
-dockerhub_username: "{{ lookup('env', 'DOCKERHUB_USERNAME') }}"
-dockerhub_password: "{{ lookup('env', 'DOCKERHUB_PASSWORD') }}"
+dockerhub_username: "{{ lookup('env', 'DOCKER_USERNAME') }}"
+dockerhub_password: "{{ lookup('env', 'DOCKER_PASSWORD') }}"
