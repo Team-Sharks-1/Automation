@@ -40,8 +40,8 @@
 
     - name: Login to Docker Hub
       docker_login:
-        username: "{{ DOCKERHUB_USERNAME }}"
-        password: "{{ DOCKERHUB_PASSWORD }}"
+        username: "{{ DOCKER_USERNAME }}"
+        password: "{{ DOCKER_PASSWORD }}"
 
     - name: Clone Frontend repository
       git:
