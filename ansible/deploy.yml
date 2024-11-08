@@ -85,10 +85,9 @@
     - name: Build and push Docker image
       shell: |
         cd /var/www
-        docker build -t armanlamba/sharks:latest -f dockerfile .
+        docker build -t armanlamba/sharks:latest .
         docker push armanlamba/sharks:latest
-      args:
-        chdir: /var/www
+
 
     - name: Pull the latest Docker image
       docker_image:
