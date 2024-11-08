@@ -4,11 +4,11 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual triggering, e.g., for destroy
+  workflow_dispatch:
 
 permissions:
   id-token: write
-  contents: read  # This is usually required for checking out the repository
+  contents: read
 
 jobs:
   terraform_apply:
@@ -30,7 +30,6 @@ jobs:
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          # client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           allow-no-subscriptions: false
 
@@ -60,18 +59,8 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform apply -auto-approve tfplan
-        
-      - name: Verify Terraform Outputs
-        working-directory: infra
-        env:
-          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-        run: terraform output
-        # Adding this step to verify if `public_ip` is output as expected
 
-      - name: Get Public IP
+      - name: Wait and Get Public IP
         id: get_ip
         working-directory: infra
         env:
@@ -80,9 +69,20 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: |
-          # Get IP and set as output
-          echo "public_ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
-          
+          # Wait for IP to be available with retry logic
+          for i in {1..6}; do
+            IP=$(terraform output -raw public_ip)
+            if [[ -n "$IP" && "$IP" != "null" ]]; then
+              echo "Public IP found: $IP"
+              echo "public_ip=$IP" >> $GITHUB_OUTPUT
+              exit 0
+            fi
+            echo "Waiting for IP address to be available... (attempt $i of 6)"
+            sleep 10
+          done
+          echo "Failed to get IP address after 60 seconds"
+          exit 1
+
   ansible_deploy:
     name: Run Ansible Playbook
     runs-on: ubuntu-latest
@@ -103,8 +103,10 @@ jobs:
 
       - name: Create Ansible Inventory
         run: |
+          mkdir -p ansible
           echo "[web]" > ansible/hosts.ini
           echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
+          cat ansible/hosts.ini  # Added for debugging
 
       - name: Run Ansible Playbook
         run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml
@@ -156,7 +158,6 @@ jobs:
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          # client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
           allow-no-subscriptions: false
 
@@ -177,4 +178,3 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform destroy -auto-approve
-
