@@ -1,5 +1,4 @@
-test 5
-
+test
 
 # Azure Setup and Ansible Deployment
 
