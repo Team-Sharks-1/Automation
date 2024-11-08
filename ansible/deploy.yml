@@ -1,16 +1,32 @@
+# ansible/deploy.yml
+
 ---
 - name: Deploy Application on Azure VM
   hosts: all
   become: yes
+  vars:
+    frontend_repo: "https://github.com/Team-Sharks-1/Frontend.git"
+    backend_repo: "https://github.com/Team-Sharks-1/Backend.git"
+    frontend_dir: "/var/www/frontend"
+    backend_dir: "/var/www/backend"
+    docker_image: "armanlamba/sharks:latest"
+
   tasks:
-    - name: Update and install Docker
+    - name: Update and install required packages
       apt:
         update_cache: yes
         name:
+          - git
           - docker.io
+          - python3-pip
         state: present
 
-    - name: Ensure Docker service is started and enabled
+    - name: Install Docker Python module
+      pip:
+        name: docker
+        state: present
+
+    - name: Start and enable Docker service
       service:
         name: docker
         state: started
@@ -21,13 +37,32 @@
         username: "{{ dockerhub_username }}"
         password: "{{ dockerhub_password }}"
 
-    - name: Pull Docker image from Docker Hub
+    - name: Clone Frontend repository
+      git:
+        repo: "{{ frontend_repo }}"
+        dest: "{{ frontend_dir }}"
+        update: yes
+
+    - name: Clone Backend repository
+      git:
+        repo: "{{ backend_repo }}"
+        dest: "{{ backend_dir }}"
+        update: yes
+
+    - name: Build and push Docker image
+      shell: |
+        cd /var/www
+        docker build -t {{ docker_image }} .
+        docker push {{ docker_image }}
+      args:
+        chdir: /var/www
+
+    - name: Pull the latest Docker image
       docker_image:
-        name: armanlamba/sharks
-        tag: latest
+        name: "{{ docker_image }}"
         source: pull
 
-    - name: Stop existing container if it exists
+    - name: Stop existing container if exists
       docker_container:
         name: sharks_app
         state: absent
@@ -36,7 +71,7 @@
     - name: Run Docker container
       docker_container:
         name: sharks_app
-        image: armanlamba/sharks:latest
+        image: "{{ docker_image }}"
         state: started
         restart_policy: always
         ports:
