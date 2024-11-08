@@ -70,16 +70,15 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform apply -auto-approve
         
-      - name: Get Public IP from Terraform Output
-        run: |
-          export TF_IN_AUTOMATION=true
-          public_ip=$(terraform output -json public_ip | jq -r .)
-          if [ -z "$public_ip" ]; then
-            echo "Error: Public IP not found in Terraform output." >&2
-            exit 1
-          fi
-          echo "public_ip=${public_ip}" >> $GITHUB_OUTPUT
-        shell: bash
+      - name: Verify Terraform Outputs
+        working-directory: infra
+        run: terraform output
+        # Adding this step to verify if `public_ip` is output as expected
+
+      - name: Get Public IP
+        id: get_ip
+        working-directory: infra
+        run: echo "public_ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
 
 
   ansible_deploy:
@@ -161,8 +160,19 @@ jobs:
 
       - name: Terraform Init
         working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform init
 
       - name: Terraform Destroy
         working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform destroy -auto-approve
+
