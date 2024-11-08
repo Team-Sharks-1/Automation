@@ -97,7 +97,8 @@ jobs:
           mkdir -p ansible
           echo "[web]" > ansible/hosts.ini
           echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
-          cat ansible/hosts.ini  # Added for debugging
+          cat ansible/hosts.ini
+
 
       - name: Run Ansible Playbook
         run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml
