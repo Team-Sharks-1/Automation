@@ -1,7 +1,9 @@
+test 2
+
 # Azure Setup and Ansible Deployment
 
 ## Step 1: Azure Login
-test
+
 Begin by logging into your Azure account using the following command:
 
 ```bash
