@@ -79,7 +79,7 @@
     - name: Build and push Docker image
       shell: |
         cd /var/www
-        docker build -t {{ docker_image }} -f ../dockerfile .
+        docker build -t {{ docker_image }} -f /home/runner/work/Automation/Automation/dockerfile .
         docker push {{ docker_image }}
       args:
         chdir: /var/www
