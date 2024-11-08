@@ -6,6 +6,10 @@ on:
       - main
   workflow_dispatch: # Allows manual triggering, e.g., for destroy
 
+permissions:
+  id-token: write
+  contents: read  # This is usually required for checking out the repository
+
 jobs:
   terraform_apply:
     name: Terraform Apply
