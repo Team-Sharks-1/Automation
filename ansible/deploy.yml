@@ -38,16 +38,16 @@
         - docker
         - nginx
         
-    - name: Debug Docker Hub Credentials
-      debug:
-        msg:
-          - "DOCKER_USERNAME: {{ DOCKER_USERNAME | default('undefined') }}"
-          - "DOCKER_PASSWORD: {{ DOCKER_PASSWORD | default('undefined') }}"
+    # - name: Debug Docker Hub Credentials
+    #   debug:
+    #     msg:
+    #       - "DOCKER_USERNAME: {{ DOCKER_USERNAME | default('undefined') }}"
+    #       - "DOCKER_PASSWORD: {{ DOCKER_PASSWORD | default('undefined') }}"
 
-    - name: Login to Docker Hub
-      docker_login:
-        username: "{{ DOCKER_USERNAME }}"
-        password: "{{ DOCKER_PASSWORD }}"
+    # - name: Login to Docker Hub
+    #   docker_login:
+    #     username: "{{ DOCKER_USERNAME }}"
+    #     password: "{{ DOCKER_PASSWORD }}"
 
     - name: Clone Frontend repository
       git:
@@ -60,10 +60,10 @@
       args:
         chdir: "{{ frontend_dir }}"
 
-    - name: Build frontend application (React.js)
-      shell: npm run build
-      args:
-        chdir: "{{ frontend_dir }}"
+    # - name: Build frontend application (React.js)
+    #   shell: npm run build
+    #   args:
+    #     chdir: "{{ frontend_dir }}"
 
     - name: Clone Backend repository
       git:
@@ -76,38 +76,38 @@
       args:
         chdir: "{{ backend_dir }}"
 
-    - name: Copy Dockerfile to the server
-      copy:
-        src: ../dockerfile  # Relative path to Dockerfile in your GitHub Actions environment
-        dest: /var/www/dockerfile
+    # - name: Copy Dockerfile to the server
+    #   copy:
+    #     src: ../dockerfile  # Relative path to Dockerfile in your GitHub Actions environment
+    #     dest: /var/www/dockerfile
 
 
-    - name: Build and push Docker image
-      shell: |
-        cd /var/www
-        docker build -t armanlamba/sharks:latest .
-        docker push armanlamba/sharks:latest
+    # - name: Build and push Docker image
+    #   shell: |
+    #     cd /var/www
+    #     docker build -t armanlamba/sharks:latest .
+    #     docker push armanlamba/sharks:latest
 
 
-    - name: Pull the latest Docker image
-      docker_image:
-        name: "{{ docker_image }}"
-        source: pull
+    # - name: Pull the latest Docker image
+    #   docker_image:
+    #     name: "{{ docker_image }}"
+    #     source: pull
 
-    - name: Stop existing container if exists
-      docker_container:
-        name: sharks_app
-        state: absent
-        force: yes
+    # - name: Stop existing container if exists
+    #   docker_container:
+    #     name: sharks_app
+    #     state: absent
+    #     force: yes
 
-    - name: Run Docker container
-      docker_container:
-        name: sharks_app
-        image: "{{ docker_image }}"
-        state: started
-        restart_policy: always
-        ports:
-          - "3000:3000"  # Assuming the backend runs on port 3000
+    # - name: Run Docker container
+    #   docker_container:
+    #     name: sharks_app
+    #     image: "{{ docker_image }}"
+    #     state: started
+    #     restart_policy: always
+    #     ports:
+    #       - "3000:3000"  # Assuming the backend runs on port 3000
 
     - name: Configure Nginx to serve the frontend and reverse proxy backend
       template:
