@@ -18,8 +18,8 @@
         name:
           - git
           - docker.io
-          - python3-pip
-          - nginx
+          # - python3-pip
+          # - nginx
           # - nodejs
           # - npm
         state: present
@@ -72,7 +72,7 @@
         update: yes
 
     - name: Generate timestamp for unique Docker image tag
-      shell: date +%Y%m%d%H%M
+      shell: date +%Y-%m-%d-%H%M
       register: timestamp
       
     - name: Build Frontend Docker image
