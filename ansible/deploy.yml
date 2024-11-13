@@ -20,8 +20,8 @@
           - docker.io
           - python3-pip
           - nginx
-          - nodejs
-          - npm
+          # - nodejs
+          # - npm
         state: present
 
     - name: Install Docker Python module
@@ -55,10 +55,10 @@
         dest: "{{ frontend_dir }}"
         update: yes
 
-    - name: Install frontend dependencies
-      shell: npm install
-      args:
-        chdir: "{{ frontend_dir }}"
+    # - name: Install frontend dependencies
+    #   shell: npm install
+    #   args:
+    #     chdir: "{{ frontend_dir }}"
 
     # - name: Build frontend application (React.js)
     #   shell: npm run build
@@ -71,10 +71,10 @@
         dest: "{{ backend_dir }}"
         update: yes
 
-    - name: Install backend dependencies
-      shell: npm install
-      args:
-        chdir: "{{ backend_dir }}"
+    # - name: Install backend dependencies
+    #   shell: npm install
+    #   args:
+    #     chdir: "{{ backend_dir }}"
 
     # - name: Copy Dockerfile to the server
     #   copy:
@@ -109,20 +109,20 @@
     #     ports:
     #       - "3000:3000"  # Assuming the backend runs on port 3000
 
-    - name: Configure Nginx to serve the frontend and reverse proxy backend
-      template:
-        src: nginx.conf.j2
-        dest: /etc/nginx/sites-available/sharks_app
-      notify: Reload Nginx
+    # - name: Configure Nginx to serve the frontend and reverse proxy backend
+    #   template:
+    #     src: nginx.conf.j2
+    #     dest: /etc/nginx/sites-available/sharks_app
+    #   notify: Reload Nginx
 
-    - name: Enable Nginx site
-      file:
-        src: /etc/nginx/sites-available/sharks_app
-        dest: /etc/nginx/sites-enabled/sharks_app
-        state: link
+    # - name: Enable Nginx site
+    #   file:
+    #     src: /etc/nginx/sites-available/sharks_app
+    #     dest: /etc/nginx/sites-enabled/sharks_app
+    #     state: link
 
-  handlers:
-    - name: Reload Nginx
-      service:
-        name: nginx
-        state: reloaded
+  # handlers:
+  #   - name: Reload Nginx
+  #     service:
+  #       name: nginx
+  #       state: reloaded
