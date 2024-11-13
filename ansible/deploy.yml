@@ -77,15 +77,15 @@
       
     - name: Build Frontend Docker image
       shell: |
-        docker build -t armanlamba/sharks:frontend-v{{ timestamp.stdout }} .
-        docker push armanlamba/sharks:frontend-v{{ timestamp.stdout }}   
+        sudo docker build -t armanlamba/sharks:frontend-v{{ timestamp.stdout }} .
+        sudo docker push armanlamba/sharks:frontend-v{{ timestamp.stdout }}   
       args:
         chdir: /var/www/frontend
 
     - name: Build Backend Docker image
       shell: |
-        docker build -t armanlamba/sharks:backend-v{{ timestamp.stdout }} .
-        docker push armanlamba/sharks:backend-v{{ timestamp.stdout }} 
+        sudo docker build -t armanlamba/sharks:backend-v{{ timestamp.stdout }} .
+        sudo docker push armanlamba/sharks:backend-v{{ timestamp.stdout }} 
       args:
         chdir: /var/www/backend
 
