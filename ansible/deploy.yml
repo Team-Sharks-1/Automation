@@ -18,7 +18,7 @@
         name:
           - git
           - docker.io
-          # - python3-pip
+          - python3-pip
           # - nginx
           # - nodejs
           # - npm
@@ -36,7 +36,7 @@
         enabled: yes
       loop:
         - docker
-        - nginx
+        # - nginx
         
     # - name: Debug Docker Hub Credentials
     #   debug:
