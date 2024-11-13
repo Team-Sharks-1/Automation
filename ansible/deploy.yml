@@ -37,6 +37,12 @@
       loop:
         - docker
         - nginx
+        
+    - name: Debug Docker Hub Credentials
+      debug:
+        msg:
+          - "DOCKER_USERNAME: {{ DOCKER_USERNAME | default('undefined') }}"
+          - "DOCKER_PASSWORD: {{ DOCKER_PASSWORD | default('undefined') }}"
 
     - name: Login to Docker Hub
       docker_login:
@@ -70,13 +76,18 @@
       args:
         chdir: "{{ backend_dir }}"
 
+    - name: Copy Dockerfile to the server
+      copy:
+        src: ../dockerfile  # Relative path to Dockerfile in your GitHub Actions environment
+        dest: /var/www/dockerfile
+
+
     - name: Build and push Docker image
       shell: |
         cd /var/www
-        docker build -t {{ docker_image }} .
-        docker push {{ docker_image }}
-      args:
-        chdir: /var/www
+        docker build -t armanlamba/sharks:latest .
+        docker push armanlamba/sharks:latest
+
 
     - name: Pull the latest Docker image
       docker_image:

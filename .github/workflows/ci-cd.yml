@@ -4,12 +4,130 @@ on:
   push:
     branches:
       - main
-  workflow_dispatch: # Allows manual triggering, e.g., for destroy
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
 
 jobs:
+  terraform_apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    outputs:
+      public_ip: ${{ steps.get_ip.outputs.public_ip }} 
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 'latest'
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: false
+
+      - name: Terraform Init
+        working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: terraform init
+
+      - name: Terraform Plan
+        working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Wait and Get Public IP
+        id: get_ip
+        working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          IP=$(terraform output -raw public_ip | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | head -n 1)
+          echo "Debug: Retrieved IP value is $IP"
+          echo "public_ip=$IP" >> $GITHUB_ENV
+          echo "public_ip"
+          # echo "::set-output name=public_ip::$IP"
+          echo "::set-output name=public_ip::$IP"  # Sets as step-level output for compatibility
+
+
+  ansible_deploy:
+    name: Run Ansible Playbook
+    runs-on: ubuntu-latest
+    needs: terraform_apply
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Ansible and Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible sshpass
+
+      - name: Set Up SSH Key
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Debug Public IP
+        run: |
+          echo "Public IP from terraform_apply:"
+          echo ${{ needs.terraform_apply.outputs.public_ip }} 
+
+      - name: Create Ansible Inventory
+        run: |
+          mkdir -p ansible
+          echo "[web]" > ansible/hosts.ini
+          echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
+          cat ansible/hosts.ini  # Print inventory for debugging
+
+      - name: Print Working Directory
+        run: pwd  # Prints the current working directory
+      
+      - name: List Files in Root Directory
+        run: ls -al  # Lists all files in the root directory of the repository
+      
+      - name: List Files Recursively
+        run: ls -R  # Lists all files and subdirectories recursively for detailed inspection
+      
+
+      - name: Run Ansible Playbook
+        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}"
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: false
+          # DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          # DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
   build_and_push_docker:
     name: Build and Push Docker Image
     runs-on: ubuntu-latest
+    needs: ansible_deploy
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -31,75 +149,6 @@ jobs:
         run: |
           docker push armanlamba/sharks:latest
 
-  terraform_apply:
-    name: Terraform Apply
-    runs-on: ubuntu-latest
-    needs: build_and_push_docker
-    outputs:
-      public_ip: ${{ steps.get_ip.outputs.public_ip }}
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Setup Terraform
-        uses: hashicorp/setup-terraform@v2
-        with:
-          terraform_version: 'latest' # Always uses the latest stable Terraform version
-
-      - name: Azure Login
-        uses: azure/login@v1
-        with:
-          client-id: ${{ secrets.AZURE_CLIENT_ID }}
-          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
-
-      - name: Terraform Init
-        working-directory: infra
-        run: terraform init
-
-      - name: Terraform Plan
-        working-directory: infra
-        run: terraform plan -out=tfplan
-
-      - name: Terraform Apply
-        working-directory: infra
-        run: terraform apply -auto-approve tfplan
-
-      - name: Get Public IP
-        id: get_ip
-        working-directory: infra
-        run: echo "public_ip=$(terraform output -raw public_ip)" >> $GITHUB_OUTPUT
-
-  ansible_deploy:
-    name: Run Ansible Playbook
-    runs-on: ubuntu-latest
-    needs: terraform_apply
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v3
-
-      - name: Install Ansible and Dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y ansible sshpass
-
-      - name: Set Up SSH Key
-        uses: webfactory/ssh-agent@v0.5.4
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      - name: Create Ansible Inventory
-        run: |
-          echo "[web]" > ansible/hosts.ini
-          echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
-
-      - name: Run Ansible Playbook
-        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: false
-          DOCKERHUB_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          DOCKERHUB_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-
   terraform_destroy:
     name: Terraform Destroy
     runs-on: ubuntu-latest
@@ -111,19 +160,30 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: 'latest' # Always uses the latest stable Terraform version
+          terraform_version: 'latest'
 
       - name: Azure Login
         uses: azure/login@v1
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-          client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: false
 
       - name: Terraform Init
         working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform init
 
       - name: Terraform Destroy
         working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform destroy -auto-approve

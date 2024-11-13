@@ -90,12 +90,11 @@ resource "azurerm_network_security_group" "nsg" {
   }
 }
 
-# Public IP
 resource "azurerm_public_ip" "public_ip" {
   name                = "${var.project_name}-publicip"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"  # Changed from Dynamic to Static
   sku                 = "Basic"
 }
 
