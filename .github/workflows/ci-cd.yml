@@ -107,14 +107,14 @@ jobs:
           echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
           cat ansible/hosts.ini  # Print inventory for debugging
 
-      - name: Print Working Directory
-        run: pwd  # Prints the current working directory
+      # - name: Print Working Directory
+      #   run: pwd  # Prints the current working directory
       
-      - name: List Files in Root Directory
-        run: ls -al  # Lists all files in the root directory of the repository
+      # - name: List Files in Root Directory
+      #   run: ls -al  # Lists all files in the root directory of the repository
       
-      - name: List Files Recursively
-        run: ls -R  # Lists all files and subdirectories recursively for detailed inspection
+      # - name: List Files Recursively
+      #   run: ls -R  # Lists all files and subdirectories recursively for detailed inspection
       
 
       - name: Run Ansible Playbook
