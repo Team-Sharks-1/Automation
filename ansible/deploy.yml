@@ -89,6 +89,13 @@
       args:
         chdir: /var/www/backend
 
+    - name: Build Mysql Docker image
+      shell: |
+        sudo docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql .
+        sudo docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }} 
+      args:
+        chdir: /var/www/backend
+
     # - name: Run Frontend Docker container
     #   docker_container:
     #     name: frontend_app
