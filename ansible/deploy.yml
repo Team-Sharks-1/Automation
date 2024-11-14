@@ -92,7 +92,7 @@
     - name: Build Mysql Docker image
       shell: |
         sudo docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql .
-        sudo docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }} 
+        sudo docker push armanlamba/sharks:mysql-v-{{ timestamp.stdout }} 
       args:
         chdir: /var/www/backend
 
