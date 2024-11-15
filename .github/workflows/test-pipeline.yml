@@ -154,10 +154,10 @@ jobs:
         env:
           ANSIBLE_HOST_KEY_CHECKING: false
 
-      - name: Use Extracted Timestamp
-        run: |
-          echo "Timestamp extracted from Ansible: ${{ steps.extract_timestamp.outputs.timestamp }}"
-          echo "This timestamp will be used in subsequent steps."
+      # - name: Use Extracted Timestamp
+      #   run: |
+      #     echo "Timestamp extracted from Ansible: ${{ steps.extract_timestamp.outputs.timestamp }}"
+      #     echo "This timestamp will be used in subsequent steps."
         
   test_pipeline:
     name: Test Pipeline
