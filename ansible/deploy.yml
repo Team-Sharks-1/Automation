@@ -8,11 +8,9 @@
     frontend_dir: "/var/www/frontend"
     backend_dir: "/var/www/backend"
     docker_image: "armanlamba/sharks:latest"
-
-    # Using the timestamp from GitHub Actions
-    frontend_tag: frontend-v-{{ timestamp }}
-    backend_tag: backend-v-{{ timestamp }}
-    mysql_tag: mysql-v-{{ timestamp }}
+    frontend_tag: frontend-v-{{ timestamp.stdout }}
+    backend_tag: backend-v-{{ timestamp.stdout }}
+    mysql_tag: mysql-v-{{ timestamp.stdout }}
 
   tasks:
     # Update and install required packages
@@ -59,6 +57,13 @@
         dest: "{{ backend_dir }}"
         version: main
         force: true
+        
+    - name: Generate timestamp for unique Docker image tag in EST timezone
+      ansible.builtin.command: date +%Y-%m-%d-%H%M
+      environment:
+        TZ: America/New_York
+      register: timestamp
+      changed_when: false
 
     # Build Frontend Docker image
     - name: Build Frontend Docker image
