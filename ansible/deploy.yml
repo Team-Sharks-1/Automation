@@ -1,5 +1,3 @@
-# ansible/deploy.yml
-
 ---
 - name: Deploy Application on Azure VM
   hosts: all
@@ -13,159 +11,67 @@
 
   tasks:
     - name: Update and install required packages
-      apt:
-        update_cache: yes
+      ansible.builtin.apt:
+        update_cache: true
         name:
           - git
           - docker.io
           - python3-pip
-          # - nginx
-          # - nodejs
-          # - npm
         state: present
 
     - name: Install Docker Python module
-      pip:
+      ansible.builtin.pip:
         name: docker
         state: present
 
-    - name: Start and enable Docker and Nginx services
-      service:
-        name: "{{ item }}"
+    - name: Start and enable Docker service
+      ansible.builtin.service:
+        name: docker
         state: started
-        enabled: yes
-      loop:
-        - docker
-        # - nginx
-        
-    # - name: Debug Docker Hub Credentials
-    #   debug:
-    #     msg:
-    #       - "DOCKER_USERNAME: {{ DOCKER_USERNAME | default('undefined') }}"
-    #       - "DOCKER_PASSWORD: {{ DOCKER_PASSWORD | default('undefined') }}"
+        enabled: true
 
     - name: Login to Docker Hub
-      docker_login:
+      community.docker.docker_login:
         username: "{{ DOCKER_USERNAME }}"
         password: "{{ DOCKER_PASSWORD }}"
 
     - name: Clone Frontend repository
-      git:
+      ansible.builtin.git:
         repo: "{{ frontend_repo }}"
         dest: "{{ frontend_dir }}"
         update: yes
 
-    # - name: Install frontend dependencies
-    #   shell: npm install
-    #   args:
-    #     chdir: "{{ frontend_dir }}"
-
-    # - name: Build frontend application (React.js)
-    #   shell: npm run build
-    #   args:
-    #     chdir: "{{ frontend_dir }}"
-
     - name: Clone Backend repository
-      git:
+      ansible.builtin.git:
         repo: "{{ backend_repo }}"
         dest: "{{ backend_dir }}"
         update: yes
 
     - name: Generate timestamp for unique Docker image tag in EST timezone
-      shell: TZ=America/New_York date +%Y-%m-%d-%H%M
+      ansible.builtin.command: TZ=America/New_York date +%Y-%m-%d-%H%M
       register: timestamp
+      changed_when: false
 
-    - name: Build Frontend Docker image
-      shell: |
-        sudo docker build -t armanlamba/sharks:frontend-v-{{ timestamp.stdout }} .
-        sudo docker push armanlamba/sharks:frontend-v-{{ timestamp.stdout }}   
+    - name: Build and push Frontend Docker image
+      ansible.builtin.command: >
+        docker build -t armanlamba/sharks:frontend-v-{{ timestamp.stdout }} . &&
+        docker push armanlamba/sharks:frontend-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/frontend
+      changed_when: true
 
-    - name: Build Backend Docker image
-      shell: |
-        sudo docker build -t armanlamba/sharks:backend-v-{{ timestamp.stdout }} .
-        sudo docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }} 
+    - name: Build and push Backend Docker image
+      ansible.builtin.command: >
+        docker build -t armanlamba/sharks:backend-v-{{ timestamp.stdout }} . &&
+        docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/backend
+      changed_when: true
 
-    - name: Build Mysql Docker image
-      shell: |
-        sudo docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql .
-        sudo docker push armanlamba/sharks:mysql-v-{{ timestamp.stdout }} 
+    - name: Build and push MySQL Docker image
+      ansible.builtin.command: >
+        docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql . &&
+        docker push armanlamba/sharks:mysql-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/backend
-
-    # - name: Run Frontend Docker container
-    #   docker_container:
-    #     name: frontend_app
-    #     image: "{{ docker_image_frontend }}"
-    #     state: started
-    #     restart_policy: always
-    #     ports:
-    #       - "80:3000"  # Adjust if your frontend uses a different port
-
-    # - name: Run Backend Docker container
-    #   docker_container:
-    #     name: backend_app
-    #     image: "{{ docker_image_backend }}"
-    #     state: started
-    #     restart_policy: always
-    #     ports:
-    #       - "5000:5000"
-    
-    # - name: Install backend dependencies
-    #   shell: npm install
-    #   args:
-    #     chdir: "{{ backend_dir }}"
-
-    # - name: Copy Dockerfile to the server
-    #   copy:
-    #     src: ../dockerfile  # Relative path to Dockerfile in your GitHub Actions environment
-    #     dest: /var/www/dockerfile
-
-
-    # - name: Build and push Docker image
-    #   shell: |
-    #     cd /var/www
-    #     docker build -t armanlamba/sharks:latest .
-    #     docker push armanlamba/sharks:latest
-
-
-    # - name: Pull the latest Docker image
-    #   docker_image:
-    #     name: "{{ docker_image }}"
-    #     source: pull
-
-    # - name: Stop existing container if exists
-    #   docker_container:
-    #     name: sharks_app
-    #     state: absent
-    #     force: yes
-
-    # - name: Run Docker container
-    #   docker_container:
-    #     name: sharks_app
-    #     image: "{{ docker_image }}"
-    #     state: started
-    #     restart_policy: always
-    #     ports:
-    #       - "3000:3000"  # Assuming the backend runs on port 3000
-
-    # - name: Configure Nginx to serve the frontend and reverse proxy backend
-    #   template:
-    #     src: nginx.conf.j2
-    #     dest: /etc/nginx/sites-available/sharks_app
-    #   notify: Reload Nginx
-
-    # - name: Enable Nginx site
-    #   file:
-    #     src: /etc/nginx/sites-available/sharks_app
-    #     dest: /etc/nginx/sites-enabled/sharks_app
-    #     state: link
-
-  # handlers:
-  #   - name: Reload Nginx
-  #     service:
-  #       name: nginx
-  #       state: reloaded
+      changed_when: true
