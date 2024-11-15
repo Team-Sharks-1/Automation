@@ -161,7 +161,7 @@ jobs:
       # Added tests for Docker images
       - name: Test Frontend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:frontend-v-${{ steps.timestamp.outputs.stdout }}
+        run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
 
       - name: Test Backend Docker Image
         continue-on-error: true  # Continue even if this test fails
