@@ -59,12 +59,13 @@
         force: true
 
     - name: Generate timestamp for unique Docker image tag in EST timezone
-      ansible.builtin.shell: date +%Y-%m-%d-%H%M | tr -d '"'
+      ansible.builtin.shell: |
+        set -o pipefail
+        date +%Y-%m-%d-%H%M | tr -d '"'
       environment:
         TZ: America/New_York
       register: timestamp
       changed_when: false
-      # noqa: command-instead-of-shell
 
     - name: Debug Raw Timestamp
       ansible.builtin.debug:
