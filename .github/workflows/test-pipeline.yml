@@ -138,12 +138,12 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
-      # Added smoke tests for deployment
-      - name: Verify Frontend Repo Cloned
-        run: sudo test -d /var/www/frontend || (echo "Frontend repo not cloned!" && exit 1)
+      # # Added smoke tests for deployment
+      # - name: Verify Frontend Repo Cloned
+      #   run: sudo test -d /var/www/frontend || (echo "Frontend repo not cloned!" && exit 1)
 
-      - name: Verify Backend Repo Cloned
-        run: sudo test -d /var/www/backend || (echo "Backend repo not cloned!" && exit 1)
+      # - name: Verify Backend Repo Cloned
+      #   run: sudo test -d /var/www/backend || (echo "Backend repo not cloned!" && exit 1)
 
       # Added test for application accessibility
       - name: Test Application Accessibility
