@@ -149,11 +149,13 @@ jobs:
             exit 1
           fi
           echo "Extracted timestamp: $TIMESTAMP"
-          echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV
-          echo "::set-output name=timestamp::$TIMESTAMP"
-        env:
-          ANSIBLE_HOST_KEY_CHECKING: false
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV  # Pass to environment
+          echo "::set-output name=timestamp::$TIMESTAMP"  # Deprecated but added for compatibility
 
+      - name: Use Extracted Timestamp
+        run: |
+          echo "Using the Ansible-generated timestamp: ${{ env.timestamp }}"
+          echo "This timestamp will be reused: ${{ steps.extract_timestamp.outputs.timestamp }}"
       # - name: Use Extracted Timestamp
       #   run: |
       #     echo "Timestamp extracted from Ansible: ${{ steps.extract_timestamp.outputs.timestamp }}"
@@ -184,6 +186,7 @@ jobs:
           IP=${{ needs.terraform_apply.outputs.public_ip }}
           echo "Testing application at http://$IP"
           curl -f http://$IP || (echo "Application not accessible!" && exit 1)
+
       # Added Docker installation verification
       - name: Verify Docker Installed
         continue-on-error: true  # Continue even if this test fails
