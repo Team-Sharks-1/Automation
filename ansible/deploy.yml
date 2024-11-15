@@ -1,7 +1,7 @@
 ---
 - name: Deploy Application on Azure VM
   hosts: all
-  become: yes
+  become: true  # Changed 'yes' to 'true' for YAML truthy compliance
   vars:
     frontend_repo: "https://github.com/Team-Sharks-1/Frontend.git"
     backend_repo: "https://github.com/Team-Sharks-1/Backend.git"
@@ -10,6 +10,7 @@
     docker_image: "armanlamba/sharks:latest"
 
   tasks:
+    # Update and install required packages using FQCN
     - name: Update and install required packages
       ansible.builtin.apt:
         update_cache: true
@@ -19,59 +20,70 @@
           - python3-pip
         state: present
 
+    # Install Docker Python module using FQCN
     - name: Install Docker Python module
       ansible.builtin.pip:
         name: docker
         state: present
 
+    # Start and enable Docker service using FQCN
     - name: Start and enable Docker service
       ansible.builtin.service:
         name: docker
         state: started
         enabled: true
 
+    # Use community.docker.docker_login for Docker Hub login
     - name: Login to Docker Hub
       community.docker.docker_login:
         username: "{{ DOCKER_USERNAME }}"
         password: "{{ DOCKER_PASSWORD }}"
 
+    # Clone Frontend repository (idempotent with force: true)
     - name: Clone Frontend repository
       ansible.builtin.git:
         repo: "{{ frontend_repo }}"
         dest: "{{ frontend_dir }}"
-        update: yes
+        force: true  # Ensures idempotent behavior
 
+    # Clone Backend repository (idempotent with force: true)
     - name: Clone Backend repository
       ansible.builtin.git:
         repo: "{{ backend_repo }}"
         dest: "{{ backend_dir }}"
-        update: yes
+        force: true  # Ensures idempotent behavior
 
+    # Generate timestamp using environment for inline TZ variable
     - name: Generate timestamp for unique Docker image tag in EST timezone
-      ansible.builtin.command: TZ=America/New_York date +%Y-%m-%d-%H%M
+      ansible.builtin.command: date +%Y-%m-%d-%H%M
+      environment:
+        TZ: America/New_York  # Defined TZ in the environment explicitly
       register: timestamp
-      changed_when: false
+      changed_when: false  # Avoid marking this task as changed unnecessarily
 
+    # Build and push Frontend Docker image
     - name: Build and push Frontend Docker image
       ansible.builtin.command: >
         docker build -t armanlamba/sharks:frontend-v-{{ timestamp.stdout }} . &&
         docker push armanlamba/sharks:frontend-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/frontend
-      changed_when: true
+      changed_when: true  # Explicitly marks as changed
 
+    # Build and push Backend Docker image
     - name: Build and push Backend Docker image
       ansible.builtin.command: >
         docker build -t armanlamba/sharks:backend-v-{{ timestamp.stdout }} . &&
         docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/backend
-      changed_when: true
+      changed_when: true  # Explicitly marks as changed
 
+    # Build and push MySQL Docker image
     - name: Build and push MySQL Docker image
       ansible.builtin.command: >
         docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql . &&
         docker push armanlamba/sharks:mysql-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/backend
-      changed_when: true
+      changed_when: true  # Explicitly marks as changed
