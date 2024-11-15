@@ -64,27 +64,39 @@
       ansible.builtin.command: sudo docker build -t armanlamba/sharks:{{ frontend_tag }} .
       args:
         chdir: "{{ frontend_dir }}"
+      register: frontend_build_output
+      changed_when: "'Successfully built' in frontend_build_output.stdout"
 
     # Push Frontend Docker image
     - name: Push Frontend Docker image
       ansible.builtin.command: sudo docker push armanlamba/sharks:{{ frontend_tag }}
+      register: frontend_push_output
+      changed_when: "'pushed' in frontend_push_output.stdout"
 
     # Build Backend Docker image
     - name: Build Backend Docker image
       ansible.builtin.command: sudo docker build -t armanlamba/sharks:{{ backend_tag }} .
       args:
         chdir: "{{ backend_dir }}"
+      register: backend_build_output
+      changed_when: "'Successfully built' in backend_build_output.stdout"
 
     # Push Backend Docker image
     - name: Push Backend Docker image
       ansible.builtin.command: sudo docker push armanlamba/sharks:{{ backend_tag }}
+      register: backend_push_output
+      changed_when: "'pushed' in backend_push_output.stdout"
 
     # Build MySQL Docker image
     - name: Build MySQL Docker image
       ansible.builtin.command: sudo docker build -t armanlamba/sharks:{{ mysql_tag }} -f {{ backend_dir }}/Dockerfile_mysql .
       args:
         chdir: "{{ backend_dir }}"
+      register: mysql_build_output
+      changed_when: "'Successfully built' in mysql_build_output.stdout"
 
     # Push MySQL Docker image
     - name: Push MySQL Docker image
       ansible.builtin.command: sudo docker push armanlamba/sharks:{{ mysql_tag }}
+      register: mysql_push_output
+      changed_when: "'pushed' in mysql_push_output.stdout"
