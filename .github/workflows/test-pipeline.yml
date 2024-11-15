@@ -165,14 +165,14 @@ jobs:
 
       # Added tests for Docker images
       - name: Test Frontend Docker Image
-      continue-on-error: true
-      # Changed: Use the propagated timestamp from ansible_deploy
-      run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        continue-on-error: true
+        # Changed: Use the propagated timestamp from ansible_deploy
+        run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
 
-    - name: Test Backend Docker Image
-      continue-on-error: true
-      # Changed: Use the propagated timestamp from ansible_deploy
-      run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+      - name: Test Backend Docker Image
+        continue-on-error: true
+        # Changed: Use the propagated timestamp from ansible_deploy
+        run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
 
       # Install Trivy (only once)
       - name: Install Trivy
