@@ -8,9 +8,10 @@
     frontend_dir: "/var/www/frontend"
     backend_dir: "/var/www/backend"
     docker_image: "armanlamba/sharks:latest"
+    frontend_branch: main  # Specify the branch to pin (or use a specific commit hash)
+    backend_branch: main
 
   tasks:
-    # Update and install required packages
     - name: Update and install required packages
       ansible.builtin.apt:
         update_cache: true
@@ -20,42 +21,38 @@
           - python3-pip
         state: present
 
-    # Install Docker Python module
     - name: Install Docker Python module
       ansible.builtin.pip:
         name: docker
         state: present
 
-    # Start and enable Docker service
     - name: Start and enable Docker service
       ansible.builtin.service:
         name: docker
         state: started
         enabled: true
 
-    # Login to Docker Hub
     - name: Login to Docker Hub
       community.docker.docker_login:
         username: "{{ DOCKER_USERNAME }}"
         password: "{{ DOCKER_PASSWORD }}"
 
-    # Clone Frontend repository with idempotent behavior
+    # Clone Frontend repository with a pinned branch
     - name: Clone Frontend repository
       ansible.builtin.git:
         repo: "{{ frontend_repo }}"
         dest: "{{ frontend_dir }}"
+        version: "{{ frontend_branch }}"  # Ensures consistent results by pinning to 'main' branch
         force: true  # Ensures local changes are overridden
-        version: HEAD  # Ensures the latest commit on the default branch is checked out
 
-    # Clone Backend repository with idempotent behavior
+    # Clone Backend repository with a pinned branch
     - name: Clone Backend repository
       ansible.builtin.git:
         repo: "{{ backend_repo }}"
         dest: "{{ backend_dir }}"
+        version: "{{ backend_branch }}"  # Ensures consistent results by pinning to 'main' branch
         force: true  # Ensures local changes are overridden
-        version: HEAD  # Ensures the latest commit on the default branch is checked out
 
-    # Generate timestamp for unique Docker image tag in EST timezone
     - name: Generate timestamp for unique Docker image tag in EST timezone
       ansible.builtin.command: date +%Y-%m-%d-%H%M
       environment:
@@ -63,7 +60,6 @@
       register: timestamp
       changed_when: false
 
-    # Build and push Frontend Docker image
     - name: Build and push Frontend Docker image
       ansible.builtin.command: >
         docker build -t armanlamba/sharks:frontend-v-{{ timestamp.stdout }} . &&
@@ -72,7 +68,6 @@
         chdir: /var/www/frontend
       changed_when: true
 
-    # Build and push Backend Docker image
     - name: Build and push Backend Docker image
       ansible.builtin.command: >
         docker build -t armanlamba/sharks:backend-v-{{ timestamp.stdout }} . &&
@@ -81,7 +76,6 @@
         chdir: /var/www/backend
       changed_when: true
 
-    # Build and push MySQL Docker image
     - name: Build and push MySQL Docker image
       ansible.builtin.command: >
         docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql . &&
