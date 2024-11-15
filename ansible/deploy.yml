@@ -65,10 +65,10 @@
       register: timestamp
       changed_when: false
 
-    # Log the generated timestamp (for GitHub Actions to parse)
-    - name: Log the generated timestamp
-      ansible.builtin.debug:
-        msg: "Generated timestamp: {{ timestamp.stdout }}"
+    # # Log the generated timestamp (for GitHub Actions to parse)
+    # - name: Log the generated timestamp
+    #   ansible.builtin.debug:
+    #     msg: "Generated timestamp: {{ timestamp.stdout }}"
 
     # Build Frontend Docker image
     - name: Build Frontend Docker image
