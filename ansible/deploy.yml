@@ -8,8 +8,9 @@
     frontend_dir: "/var/www/frontend"
     backend_dir: "/var/www/backend"
     docker_image: "armanlamba/sharks:latest"
-    frontend_branch: main  # Specify the branch to pin (or use a specific commit hash)
-    backend_branch: main
+    frontend_tag: frontend-v-{{ timestamp.stdout }}
+    backend_tag: backend-v-{{ timestamp.stdout }}
+    mysql_tag: mysql-v-{{ timestamp.stdout }}
 
   tasks:
     - name: Update and install required packages
@@ -37,21 +38,19 @@
         username: "{{ DOCKER_USERNAME }}"
         password: "{{ DOCKER_PASSWORD }}"
 
-    # Clone Frontend repository with a pinned branch
     - name: Clone Frontend repository
       ansible.builtin.git:
         repo: "{{ frontend_repo }}"
         dest: "{{ frontend_dir }}"
-        version: "{{ frontend_branch }}"  # Ensures consistent results by pinning to 'main' branch
-        force: true  # Ensures local changes are overridden
+        version: main
+        force: true
 
-    # Clone Backend repository with a pinned branch
     - name: Clone Backend repository
       ansible.builtin.git:
         repo: "{{ backend_repo }}"
         dest: "{{ backend_dir }}"
-        version: "{{ backend_branch }}"  # Ensures consistent results by pinning to 'main' branch
-        force: true  # Ensures local changes are overridden
+        version: main
+        force: true
 
     - name: Generate timestamp for unique Docker image tag in EST timezone
       ansible.builtin.command: date +%Y-%m-%d-%H%M
@@ -60,26 +59,32 @@
       register: timestamp
       changed_when: false
 
-    - name: Build and push Frontend Docker image
-      ansible.builtin.command: >
-        sudo docker build -t armanlamba/sharks:frontend-v-{{ timestamp.stdout }} . &&
-        sudo docker push armanlamba/sharks:frontend-v-{{ timestamp.stdout }}
+    # Build Frontend Docker image
+    - name: Build Frontend Docker image
+      ansible.builtin.command: sudo docker build -t armanlamba/sharks:{{ frontend_tag }} .
       args:
-        chdir: /var/www/frontend
-      changed_when: true
+        chdir: "{{ frontend_dir }}"
 
-    - name: Build and push Backend Docker image
-      ansible.builtin.command: >
-        sudo docker build -t armanlamba/sharks:backend-v-{{ timestamp.stdout }} . &&
-        sudo docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }}
-      args:
-        chdir: /var/www/backend
-      changed_when: true
+    # Push Frontend Docker image
+    - name: Push Frontend Docker image
+      ansible.builtin.command: sudo docker push armanlamba/sharks:{{ frontend_tag }}
 
-    - name: Build and push MySQL Docker image
-      ansible.builtin.command: >
-        sudo docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql . &&
-        sudo docker push armanlamba/sharks:mysql-v-{{ timestamp.stdout }}
+    # Build Backend Docker image
+    - name: Build Backend Docker image
+      ansible.builtin.command: sudo docker build -t armanlamba/sharks:{{ backend_tag }} .
       args:
-        chdir: /var/www/backend
-      changed_when: true
+        chdir: "{{ backend_dir }}"
+
+    # Push Backend Docker image
+    - name: Push Backend Docker image
+      ansible.builtin.command: sudo docker push armanlamba/sharks:{{ backend_tag }}
+
+    # Build MySQL Docker image
+    - name: Build MySQL Docker image
+      ansible.builtin.command: sudo docker build -t armanlamba/sharks:{{ mysql_tag }} -f {{ backend_dir }}/Dockerfile_mysql .
+      args:
+        chdir: "{{ backend_dir }}"
+
+    # Push MySQL Docker image
+    - name: Push MySQL Docker image
+      ansible.builtin.command: sudo docker push armanlamba/sharks:{{ mysql_tag }}
