@@ -68,7 +68,7 @@
       changed_when: false
       args:
         executable: /bin/bash
-     
+
     - name: Debug Raw Timestamp
       ansible.builtin.debug:
         var: timestamp.stdout
