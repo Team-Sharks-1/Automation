@@ -123,15 +123,23 @@ jobs:
       - name: Lint Ansible Playbook
         run: ansible-lint ansible/deploy.yml
         
-      # Pass the timestamp from GitHub Actions to Ansible
-      - name: Generate timestamp for dynamic Docker tags
-        id: timestamp
-        run: echo "timestamp=$(TZ=America/New_York date +'%Y-%m-%d-%H%M')" >> $GITHUB_ENV
+      # # Pass the timestamp from GitHub Actions to Ansible
+      # - name: Generate timestamp for dynamic Docker tags
+      #   id: timestamp
+      #   run: echo "timestamp=$(TZ=America/New_York date +'%Y-%m-%d-%H%M')" >> $GITHUB_ENV
 
       - name: Run Ansible Playbook
-        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}" -e "timestamp=${{ env.timestamp }}"
+        id: run_playbook
+        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}"
         env:
           ANSIBLE_HOST_KEY_CHECKING: false
+          
+      - name: Extract Timestamp from Ansible
+        id: extract_timestamp
+        run: |
+          TIMESTAMP=$(grep 'timestamp=' ansible_output.log | cut -d'=' -f2 | tail -n1)
+          echo "Timestamp retrieved from Ansible: $TIMESTAMP"
+          echo "::set-output name=timestamp::$TIMESTAMP"      
       # - name: Run Ansible Playbook
       #   run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}"
       #   env:
@@ -172,43 +180,50 @@ jobs:
       #   id: timestamp
       #   run: echo "timestamp=$(TZ=America/New_York date +'%Y-%m-%d-%H%M')" >> $GITHUB_ENV
 
-      # Added tests for Docker images
+     # Test Frontend Docker Image
       - name: Test Frontend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:frontend-v-${{ env.timestamp }}
+        run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.ansible_timestamp }}
 
+      # Test Backend Docker Image
       - name: Test Backend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:backend-v-${{ env.timestamp }}
+        run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.ansible_timestamp }}
 
       # Install Trivy (only once)
       - name: Install Trivy
         run: |
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
 
-      # Scan Frontend Docker image for vulnerabilities
+      # # Scan Frontend Docker image for vulnerabilities
+      # - name: Scan Frontend Docker image for vulnerabilities
+      #   continue-on-error: true  # Continue even if vulnerabilities are found
+      #   env:
+      #     DOCKER_IMAGE: armanlamba/sharks
+      #     DOCKER_TAG: frontend-v-${{ env.timestamp }}
+      #   run: |
+      #     trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+
+       # Scan Frontend Docker Image for vulnerabilities
       - name: Scan Frontend Docker image for vulnerabilities
-        continue-on-error: true  # Continue even if vulnerabilities are found
+        continue-on-error: true
         env:
           DOCKER_IMAGE: armanlamba/sharks
-          DOCKER_TAG: frontend-v-${{ env.timestamp }}
-        run: |
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+          DOCKER_TAG: frontend-v-${{ needs.ansible_deploy.outputs.ansible_timestamp }}
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
 
-      # Scan Backend Docker image for vulnerabilities
+      # Scan Backend Docker Image for vulnerabilities
       - name: Scan Backend Docker image for vulnerabilities
-        continue-on-error: true  # Continue even if vulnerabilities are found
+        continue-on-error: true
         env:
           DOCKER_IMAGE: armanlamba/sharks
-          DOCKER_TAG: backend-v-${{ env.timestamp }}
-        run: |
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+          DOCKER_TAG: backend-v-${{ needs.ansible_deploy.outputs.ansible_timestamp }}
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
 
-      # Scan MySQL Docker image for vulnerabilities
+      # Scan MySQL Docker Image for vulnerabilities
       - name: Scan MySQL Docker image for vulnerabilities
-        continue-on-error: true  # Continue even if vulnerabilities are found
+        continue-on-error: true
         env:
           DOCKER_IMAGE: armanlamba/sharks
-          DOCKER_TAG: mysql-v-${{ env.timestamp }}
-        run: |
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+          DOCKER_TAG: mysql-v-${{ needs.ansible_deploy.outputs.ansible_timestamp }}
+        run: trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
