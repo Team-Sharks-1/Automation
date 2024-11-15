@@ -39,7 +39,6 @@ jobs:
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform init
 
-  
       # Added Terraform validation to ensure the code is valid
       - name: Terraform Validate
         working-directory: infra
@@ -83,10 +82,13 @@ jobs:
           echo "public_ip"
           # echo "::set-output name=public_ip::$IP"
           echo "::set-output name=public_ip::$IP"  # Sets as step-level output for compatibility
+
   ansible_deploy:
     name: Run Ansible Playbook
     runs-on: ubuntu-latest
     needs: terraform_apply
+    outputs:
+      timestamp: ${{ steps.generate_timestamp.outputs.timestamp }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -110,6 +112,7 @@ jobs:
           echo "[web]" > ansible/hosts.ini
           echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
           cat ansible/hosts.ini  # Print inventory for debugging
+
       # Added Ansible lint check for playbook validation
       - name: Install Ansible Lint
         run: |
@@ -123,11 +126,11 @@ jobs:
           ANSIBLE_HOST_KEY_CHECKING: false
           # DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
           # DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-     
-      # Generate timestamp for dynamic Docker tags
+
+      # Changed: Generate timestamp and set it as a step output
       - name: Generate timestamp for dynamic Docker tags
-        id: timestamp
-        run: echo "timestamp=$(TZ=America/New_York date +'%Y-%m-%d-%H%M')" >> $GITHUB_ENV
+        id: generate_timestamp  # Added ID to access outputs
+        run: echo "::set-output name=timestamp::$(TZ=America/New_York date +'%Y-%m-%d-%H%M')"
 
   test_pipeline:
     name: Test Pipeline
@@ -136,6 +139,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
+
+       # Added: Debug step to verify timestamp
+      - name: Debug Timestamp
+        run: echo "Timestamp from ansible_deploy: ${{ needs.ansible_deploy.outputs.timestamp }}"
 
       # # Added smoke tests for deployment
       # - name: Verify Frontend Repo Cloned
@@ -158,12 +165,14 @@ jobs:
 
       # Added tests for Docker images
       - name: Test Frontend Docker Image
-        continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:frontend-v-${{ env.timestamp }}
+      continue-on-error: true
+      # Changed: Use the propagated timestamp from ansible_deploy
+      run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
 
-      - name: Test Backend Docker Image
-        continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:backend-v-${{ env.timestamp }}
+    - name: Test Backend Docker Image
+      continue-on-error: true
+      # Changed: Use the propagated timestamp from ansible_deploy
+      run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
 
       # Install Trivy (only once)
       - name: Install Trivy
@@ -175,8 +184,10 @@ jobs:
         continue-on-error: true  # Continue even if vulnerabilities are found
         env:
           DOCKER_IMAGE: armanlamba/sharks
-          DOCKER_TAG: frontend-v-${{ env.timestamp }}
+          # Changed: Use the propagated timestamp from ansible_deploy
+          DOCKER_TAG: frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
         run: |
+          echo "Scanning frontend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
           trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
 
       # Scan Backend Docker image for vulnerabilities
@@ -184,8 +195,10 @@ jobs:
         continue-on-error: true  # Continue even if vulnerabilities are found
         env:
           DOCKER_IMAGE: armanlamba/sharks
-          DOCKER_TAG: backend-v-${{ env.timestamp }}
+          # Changed: Use the propagated timestamp from ansible_deploy
+          DOCKER_TAG: backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
         run: |
+          echo "Scanning backend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
           trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
 
       # Scan MySQL Docker image for vulnerabilities
@@ -193,6 +206,8 @@ jobs:
         continue-on-error: true  # Continue even if vulnerabilities are found
         env:
           DOCKER_IMAGE: armanlamba/sharks
-          DOCKER_TAG: mysql-v-${{ env.timestamp }}
+          # Changed: Use the propagated timestamp from ansible_deploy
+          DOCKER_TAG: mysql-v-${{ needs.ansible_deploy.outputs.timestamp }}
         run: |
+          echo "Scanning MySQL Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
           trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
