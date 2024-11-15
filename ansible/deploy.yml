@@ -59,7 +59,7 @@
         force: true
 
     - name: Generate timestamp for unique Docker image tag in EST timezone
-      ansible.builtin.command: date +%Y-%m-%d-%H%M
+      ansible.builtin.command: date +%Y-%m-%d-%H%M | tr -d '"'
       environment:
         TZ: America/New_York
       register: timestamp
@@ -72,6 +72,9 @@
     - name: Log the generated timestamp
       ansible.builtin.debug:
         msg: "Generated timestamp: {{ timestamp.stdout | regex_replace('\"', '') }}"
+    
+    - name: Debug Ansible Output
+      run: cat ansible_output.log
 
     # # Log the generated timestamp (for GitHub Actions to parse)
     # - name: Log the generated timestamp
