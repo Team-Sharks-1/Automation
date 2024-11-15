@@ -140,10 +140,10 @@ jobs:
 
       # Added smoke tests for deployment
       - name: Verify Frontend Repo Cloned
-        run: test -d /var/www/frontend || (echo "Frontend repo not cloned!" && exit 1)
+        run: sudo test -d /var/www/frontend || (echo "Frontend repo not cloned!" && exit 1)
 
       - name: Verify Backend Repo Cloned
-        run: test -d /var/www/backend || (echo "Backend repo not cloned!" && exit 1)
+        run: sudo test -d /var/www/backend || (echo "Backend repo not cloned!" && exit 1)
 
       # Added test for application accessibility
       - name: Test Application Accessibility
@@ -154,14 +154,14 @@ jobs:
 
       # Added Docker installation verification
       - name: Verify Docker Installed
-        run: docker --version
+        run: sudo docker --version
 
       # Added tests for Docker images
       - name: Test Frontend Docker Image
-        run: docker pull armanlamba/sharks:frontend-v-${{ steps.timestamp.outputs.stdout }}
+        run: sudo docker pull armanlamba/sharks:frontend-v-${{ steps.timestamp.outputs.stdout }}
 
       - name: Test Backend Docker Image
-        run: docker pull armanlamba/sharks:backend-v-${{ steps.timestamp.outputs.stdout }}
+        run: sudo docker pull armanlamba/sharks:backend-v-${{ steps.timestamp.outputs.stdout }}
 
       # Generate timestamp for dynamic Docker tags
       - name: Generate timestamp for dynamic Docker tags
