@@ -194,14 +194,33 @@ jobs:
         continue-on-error: true  # Continue even if this test fails
         run: sudo docker --version
 
+      # # Added tests for Docker images
+      # - name: Test Frontend Docker Image
+      #   continue-on-error: true  # Continue even if this test fails
+      #   run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+
       # Added tests for Docker images
       - name: Test Frontend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        env:
+          DOCKER_IMAGE: armanlamba/sharks
+          DOCKER_TAG: frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        run: |
+          echo "Pulling frontend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
+          sudo docker pull "$DOCKER_IMAGE:$DOCKER_TAG"
 
       - name: Test Backend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        env:
+          DOCKER_IMAGE: armanlamba/sharks
+          DOCKER_TAG: backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        run: |
+          echo "Pulling backend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
+          sudo docker pull "$DOCKER_IMAGE:$DOCKER_TAG"
+
+      # - name: Test Backend Docker Image
+      #   continue-on-error: true  # Continue even if this test fails
+      #   run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
 
 
       # run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
@@ -223,8 +242,7 @@ jobs:
           DOCKER_TAG: frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
         run: |
           echo "Scanning frontend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
- 
+          trivy image --exit-code 1 --severity HIGH,CRITICAL "$DOCKER_IMAGE:$DOCKER_TAG"
       # Scan Backend Docker image for vulnerabilities
       - name: Scan Backend Docker image for vulnerabilities
         continue-on-error: true  # Continue even if vulnerabilities are found
@@ -233,8 +251,7 @@ jobs:
           DOCKER_TAG: backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
         run: |
           echo "Scanning backend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
-   
+          trivy image --exit-code 1 --severity HIGH,CRITICAL "$DOCKER_IMAGE:$DOCKER_TAG"
       # Scan MySQL Docker image for vulnerabilities
       - name: Scan MySQL Docker image for vulnerabilities
         continue-on-error: true  # Continue even if vulnerabilities are found
@@ -242,4 +259,39 @@ jobs:
           DOCKER_IMAGE: armanlamba/sharks
           DOCKER_TAG: mysql-v-${{ needs.ansible_deploy.outputs.timestamp }}
         run: |
-          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+          echo "Scanning MySQL Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
+          trivy image --exit-code 1 --severity HIGH,CRITICAL "$DOCKER_IMAGE:$DOCKER_TAG"
+
+
+
+
+
+
+      # # Scan Frontend Docker image for vulnerabilities
+      # - name: Scan Frontend Docker image for vulnerabilities
+      #   continue-on-error: true  # Continue even if vulnerabilities are found
+      #   env:
+      #     DOCKER_IMAGE: armanlamba/sharks
+      #     DOCKER_TAG: frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+      #   run: |
+      #     echo "Scanning frontend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
+      #     trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+ 
+      # # Scan Backend Docker image for vulnerabilities
+      # - name: Scan Backend Docker image for vulnerabilities
+      #   continue-on-error: true  # Continue even if vulnerabilities are found
+      #   env:
+      #     DOCKER_IMAGE: armanlamba/sharks
+      #     DOCKER_TAG: backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+      #   run: |
+      #     echo "Scanning backend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
+      #     trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+   
+      # # Scan MySQL Docker image for vulnerabilities
+      # - name: Scan MySQL Docker image for vulnerabilities
+      #   continue-on-error: true  # Continue even if vulnerabilities are found
+      #   env:
+      #     DOCKER_IMAGE: armanlamba/sharks
+      #     DOCKER_TAG: mysql-v-${{ needs.ansible_deploy.outputs.timestamp }}
+      #   run: |
+      #     trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
