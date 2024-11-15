@@ -120,16 +120,44 @@ jobs:
       - name: Lint Ansible Playbook
         run: ansible-lint ansible/deploy.yml
 
+ #      - name: Run Ansible Playbook
+ #        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}"
+ #        env:
+ #          ANSIBLE_HOST_KEY_CHECKING: false
+ #          # DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+ #          # DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+ # # Changed: Generate timestamp and set it as a step output
+ #      - name: Generate timestamp for dynamic Docker tags
+ #        id: generate_timestamp  # Added ID to access outputs
+ #        run: echo "::set-output name=timestamp::$(TZ=America/New_York date +'%Y-%m-%d-%H%M')"
       - name: Run Ansible Playbook
-        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}"
+        id: ansible_run  # Assign an ID to reference outputs
+        run: |
+          ansible-playbook -i ansible/hosts.ini ansible/deploy.yml \
+          -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" \
+          -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}" \
+          | tee ansible_output.log  # Capture playbook output
         env:
           ANSIBLE_HOST_KEY_CHECKING: false
-          # DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          # DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
- # Changed: Generate timestamp and set it as a step output
-      - name: Generate timestamp for dynamic Docker tags
-        id: generate_timestamp  # Added ID to access outputs
-        run: echo "::set-output name=timestamp::$(TZ=America/New_York date +'%Y-%m-%d-%H%M')"
+
+      - name: Extract Timestamp from Ansible Output
+        id: extract_timestamp  # Assign an ID for outputs
+        run: |
+          TIMESTAMP=$(grep -oP 'Generated timestamp: \K.*' ansible_output.log)
+          if [ -z "$TIMESTAMP" ]; then
+            echo "No timestamp found in Ansible output!" >&2
+            exit 1
+          fi
+          echo "Extracted timestamp: $TIMESTAMP"
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV
+          echo "::set-output name=timestamp::$TIMESTAMP"
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: false
+
+      - name: Use Extracted Timestamp
+        run: |
+          echo "Timestamp extracted from Ansible: ${{ steps.extract_timestamp.outputs.timestamp }}"
+          echo "This timestamp will be used in subsequent steps."
         
   test_pipeline:
     name: Test Pipeline
@@ -139,6 +167,9 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v3
 
+      - name: Test Application with Ansible Timestamp
+        run: |
+          echo "Using the Ansible-generated timestamp: ${{ steps.extract_timestamp.outputs.timestamp }}"
       # # Added smoke tests for deployment
       # - name: Verify Frontend Repo Cloned
       #   run: sudo test -d /var/www/frontend || (echo "Frontend repo not cloned!" && exit 1)
@@ -161,12 +192,12 @@ jobs:
       # Added tests for Docker images
       - name: Test Frontend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        run: sudo docker pull armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
 
       - name: Test Backend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
-
+        run: sudo docker pull armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+      # run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
       # # Generate timestamp for dynamic Docker tags
       # - name: Generate timestamp for dynamic Docker tags
       #   id: timestamp
