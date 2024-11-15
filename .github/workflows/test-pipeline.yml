@@ -171,8 +171,9 @@ jobs:
 
       - name: Test Application with Ansible Timestamp
         run: |
-          echo "Using the Ansible-generated timestamp: ${{ needs.ansible_deploy.outputs.timestamp }}"
-          
+          TIMESTAMP="${{ needs.ansible_deploy.outputs.timestamp }}"
+          echo "Using the Ansible-generated timestamp: $TIMESTAMP"
+
       # # Added smoke tests for deployment
       # - name: Verify Frontend Repo Cloned
       #   run: sudo test -d /var/www/frontend || (echo "Frontend repo not cloned!" && exit 1)
@@ -196,11 +197,11 @@ jobs:
       # Added tests for Docker images
       - name: Test Frontend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+        run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
 
       - name: Test Backend Docker Image
         continue-on-error: true  # Continue even if this test fails
-        run: sudo docker pull armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+        run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
 
 
       # run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
