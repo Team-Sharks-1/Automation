@@ -94,7 +94,7 @@ resource "azurerm_public_ip" "public_ip" {
   name                = "${var.project_name}-publicip"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  allocation_method   = "Static"  # Changed from Dynamic to Static
+  allocation_method   = "Static" # Changed from Dynamic to Static
   sku                 = "Basic"
 }
 
@@ -114,18 +114,18 @@ resource "azurerm_network_interface" "nic" {
 }
 # NSG and NIC Association
 resource "azurerm_network_interface_security_group_association" "nic_nsg_association" {
-  network_interface_id    = azurerm_network_interface.nic.id
+  network_interface_id      = azurerm_network_interface.nic.id
   network_security_group_id = azurerm_network_security_group.nsg.id
 }
 
 
 # Virtual Machine
 resource "azurerm_linux_virtual_machine" "vm" {
-  name                  = "${var.project_name}-vm"
-  location              = azurerm_resource_group.rg.location
-  resource_group_name   = azurerm_resource_group.rg.name
-  size                  = var.vm_size
-  admin_username        = var.admin_username
+  name                = "${var.project_name}-vm"
+  location            = azurerm_resource_group.rg.location
+  resource_group_name = azurerm_resource_group.rg.name
+  size                = var.vm_size
+  admin_username      = var.admin_username
   network_interface_ids = [
     azurerm_network_interface.nic.id,
   ]
@@ -147,7 +147,7 @@ resource "azurerm_linux_virtual_machine" "vm" {
     sku       = "22_04-lts"
     version   = "latest"
   }
-  
+
   tags = {
     environment = var.environment
   }
