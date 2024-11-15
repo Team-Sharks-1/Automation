@@ -1,0 +1,213 @@
+name: Test-pipeline
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  terraform_apply:
+    name: Terraform Apply
+    runs-on: ubuntu-latest
+    outputs:
+      public_ip: ${{ steps.get_ip.outputs.public_ip }} 
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v2
+        with:
+          terraform_version: 'latest'
+
+      - name: Azure Login
+        uses: azure/login@v1
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+          allow-no-subscriptions: false
+
+      - name: Terraform Init
+        working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: terraform init
+
+      # Added Terraform validation to ensure the code is valid
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
+
+      # Added Terraform format check to ensure consistent formatting
+      - name: Terraform Format Check
+        working-directory: infra
+        run: terraform fmt -check
+        
+      - name: Terraform Plan
+        working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: terraform plan -out=tfplan
+
+      - name: Terraform Apply
+        working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: terraform apply -auto-approve tfplan
+
+      - name: Wait and Get Public IP
+        id: get_ip
+        working-directory: infra
+        env:
+          ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+        run: |
+          IP=$(terraform output -raw public_ip | grep -oE '\b([0-9]{1,3}\.){3}[0-9]{1,3}\b' | head -n 1)
+          echo "Debug: Retrieved IP value is $IP"
+          echo "public_ip=$IP" >> $GITHUB_ENV
+          echo "public_ip"
+          # echo "::set-output name=public_ip::$IP"
+          echo "::set-output name=public_ip::$IP"  # Sets as step-level output for compatibility
+
+  ansible_deploy:
+    name: Run Ansible Playbook
+    runs-on: ubuntu-latest
+    needs: terraform_apply
+    outputs:
+      timestamp: ${{ steps.generate_timestamp.outputs.timestamp }}
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Install Ansible and Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ansible sshpass
+      - name: Set Up SSH Key
+        uses: webfactory/ssh-agent@v0.5.4
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_KEY }}
+
+      - name: Debug Public IP
+        run: |
+          echo "Public IP from terraform_apply:"
+          echo ${{ needs.terraform_apply.outputs.public_ip }} 
+      - name: Create Ansible Inventory
+        run: |
+          mkdir -p ansible
+          echo "[web]" > ansible/hosts.ini
+          echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
+          cat ansible/hosts.ini  # Print inventory for debugging
+
+      # Added Ansible lint check for playbook validation
+      - name: Install Ansible Lint
+        run: |
+          pip install ansible-lint
+      - name: Lint Ansible Playbook
+        run: ansible-lint ansible/deploy.yml
+
+      - name: Run Ansible Playbook
+        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}"
+        env:
+          ANSIBLE_HOST_KEY_CHECKING: false
+          # DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+          # DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+
+      # Changed: Generate timestamp and set it as a step output
+      - name: Generate timestamp for dynamic Docker tags
+        id: generate_timestamp  # Added ID to access outputs
+        run: echo "::set-output name=timestamp::$(TZ=America/New_York date +'%Y-%m-%d-%H%M')"
+
+  test_pipeline:
+    name: Test Pipeline
+    runs-on: ubuntu-latest
+    needs: ansible_deploy
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+       # Added: Debug step to verify timestamp
+      - name: Debug Timestamp
+        run: echo "Timestamp from ansible_deploy: ${{ needs.ansible_deploy.outputs.timestamp }}"
+
+      # # Added smoke tests for deployment
+      # - name: Verify Frontend Repo Cloned
+      #   run: sudo test -d /var/www/frontend || (echo "Frontend repo not cloned!" && exit 1)
+
+      # - name: Verify Backend Repo Cloned
+      #   run: sudo test -d /var/www/backend || (echo "Backend repo not cloned!" && exit 1)
+
+# Added test for application accessibility
+      - name: Test Application Accessibility
+        continue-on-error: true  # Continue even if this test fails
+        run: |
+          IP=${{ needs.terraform_apply.outputs.public_ip }}
+          echo "Testing application at http://$IP"
+          curl -f http://$IP || (echo "Application not accessible!" && exit 1)
+      # Added Docker installation verification
+      - name: Verify Docker Installed
+        continue-on-error: true  # Continue even if this test fails
+        run: sudo docker --version
+
+      # Added tests for Docker images
+      - name: Test Frontend Docker Image
+      continue-on-error: true
+      # Changed: Use the propagated timestamp from ansible_deploy
+      run: sudo docker pull armanlamba/sharks:frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+
+    - name: Test Backend Docker Image
+      continue-on-error: true
+      # Changed: Use the propagated timestamp from ansible_deploy
+      run: sudo docker pull armanlamba/sharks:backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+
+      # Install Trivy (only once)
+      - name: Install Trivy
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+
+      # Scan Frontend Docker image for vulnerabilities
+      - name: Scan Frontend Docker image for vulnerabilities
+        continue-on-error: true  # Continue even if vulnerabilities are found
+        env:
+          DOCKER_IMAGE: armanlamba/sharks
+          # Changed: Use the propagated timestamp from ansible_deploy
+          DOCKER_TAG: frontend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        run: |
+          echo "Scanning frontend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
+          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+
+      # Scan Backend Docker image for vulnerabilities
+      - name: Scan Backend Docker image for vulnerabilities
+        continue-on-error: true  # Continue even if vulnerabilities are found
+        env:
+          DOCKER_IMAGE: armanlamba/sharks
+          # Changed: Use the propagated timestamp from ansible_deploy
+          DOCKER_TAG: backend-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        run: |
+          echo "Scanning backend Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
+          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
+
+      # Scan MySQL Docker image for vulnerabilities
+      - name: Scan MySQL Docker image for vulnerabilities
+        continue-on-error: true  # Continue even if vulnerabilities are found
+        env:
+          DOCKER_IMAGE: armanlamba/sharks
+          # Changed: Use the propagated timestamp from ansible_deploy
+          DOCKER_TAG: mysql-v-${{ needs.ansible_deploy.outputs.timestamp }}
+        run: |
+          echo "Scanning MySQL Docker image: $DOCKER_IMAGE:$DOCKER_TAG"
+          trivy image --exit-code 1 --severity HIGH,CRITICAL $DOCKER_IMAGE:$DOCKER_TAG
