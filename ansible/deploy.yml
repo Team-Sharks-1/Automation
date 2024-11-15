@@ -65,9 +65,13 @@
       register: timestamp
       changed_when: false
 
+    - name: Debug Raw Timestamp
+      ansible.builtin.debug:
+        var: timestamp.stdout
+
     - name: Log the generated timestamp
       ansible.builtin.debug:
-        msg: "Generated timestamp: {{ timestamp.stdout }}"
+        msg: "Generated timestamp: {{ timestamp.stdout | regex_replace('\"', '') }}"
 
     # # Log the generated timestamp (for GitHub Actions to parse)
     # - name: Log the generated timestamp
