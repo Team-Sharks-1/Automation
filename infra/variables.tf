@@ -43,5 +43,5 @@ variable "frontend_port" {
 
 variable "vm_size" {
   description = "Azure VM size"
-  default     = "Standard_D2s_v3"
+  default     = "Standard_B2ms"
 }
