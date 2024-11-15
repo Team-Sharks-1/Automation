@@ -72,7 +72,7 @@
     - name: Log the generated timestamp
       ansible.builtin.debug:
         msg: "Generated timestamp: {{ timestamp.stdout | regex_replace('\"', '') }}"
-    
+  
     - name: Debug Ansible Output
       run: cat ansible_output.log
 
