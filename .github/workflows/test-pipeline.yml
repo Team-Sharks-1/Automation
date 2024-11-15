@@ -89,7 +89,7 @@ jobs:
     runs-on: ubuntu-latest
     needs: terraform_apply
     outputs:
-      timestamp: ${{ steps.generate_timestamp.outputs.timestamp }}
+      timestamp: ${{ steps.extract_timestamp.outputs.timestamp }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -131,17 +131,17 @@ jobs:
  #        id: generate_timestamp  # Added ID to access outputs
  #        run: echo "::set-output name=timestamp::$(TZ=America/New_York date +'%Y-%m-%d-%H%M')"
       - name: Run Ansible Playbook
-        id: ansible_run  # Assign an ID to reference outputs
+        id: ansible_run
         run: |
           ansible-playbook -i ansible/hosts.ini ansible/deploy.yml \
           -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" \
           -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}" \
-          | tee ansible_output.log  # Capture playbook output
+          | tee ansible_output.log
         env:
           ANSIBLE_HOST_KEY_CHECKING: false
 
       - name: Extract Timestamp from Ansible Output
-        id: extract_timestamp  # Assign an ID for outputs
+        id: extract_timestamp
         run: |
           TIMESTAMP=$(grep -oP 'Generated timestamp: \K.*' ansible_output.log)
           if [ -z "$TIMESTAMP" ]; then
@@ -149,8 +149,8 @@ jobs:
             exit 1
           fi
           echo "Extracted timestamp: $TIMESTAMP"
-          echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV  # Pass to environment
-          echo "::set-output name=timestamp::$TIMESTAMP"  # Deprecated but added for compatibility
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV
+          echo "::set-output name=timestamp::$TIMESTAMP"
 
       - name: Use Extracted Timestamp
         run: |
