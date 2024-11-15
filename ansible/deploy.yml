@@ -62,24 +62,24 @@
 
     - name: Build and push Frontend Docker image
       ansible.builtin.command: >
-        docker build -t armanlamba/sharks:frontend-v-{{ timestamp.stdout }} . &&
-        docker push armanlamba/sharks:frontend-v-{{ timestamp.stdout }}
+        sudo docker build -t armanlamba/sharks:frontend-v-{{ timestamp.stdout }} . &&
+        sudo docker push armanlamba/sharks:frontend-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/frontend
       changed_when: true
 
     - name: Build and push Backend Docker image
       ansible.builtin.command: >
-        docker build -t armanlamba/sharks:backend-v-{{ timestamp.stdout }} . &&
-        docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }}
+        sudo docker build -t armanlamba/sharks:backend-v-{{ timestamp.stdout }} . &&
+        sudo docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/backend
       changed_when: true
 
     - name: Build and push MySQL Docker image
       ansible.builtin.command: >
-        docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql . &&
-        docker push armanlamba/sharks:mysql-v-{{ timestamp.stdout }}
+        sudo docker build -t armanlamba/sharks:mysql-v-{{ timestamp.stdout }} -f {{ backend_dir }}/Dockerfile_mysql . &&
+        sudo docker push armanlamba/sharks:mysql-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/backend
       changed_when: true
