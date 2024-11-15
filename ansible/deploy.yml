@@ -1,7 +1,7 @@
 ---
 - name: Deploy Application on Azure VM
   hosts: all
-  become: true  # Changed 'yes' to 'true' for YAML truthy compliance
+  become: true
   vars:
     frontend_repo: "https://github.com/Team-Sharks-1/Frontend.git"
     backend_repo: "https://github.com/Team-Sharks-1/Backend.git"
@@ -10,7 +10,7 @@
     docker_image: "armanlamba/sharks:latest"
 
   tasks:
-    # Update and install required packages using FQCN
+    # Update and install required packages
     - name: Update and install required packages
       ansible.builtin.apt:
         update_cache: true
@@ -20,46 +20,48 @@
           - python3-pip
         state: present
 
-    # Install Docker Python module using FQCN
+    # Install Docker Python module
     - name: Install Docker Python module
       ansible.builtin.pip:
         name: docker
         state: present
 
-    # Start and enable Docker service using FQCN
+    # Start and enable Docker service
     - name: Start and enable Docker service
       ansible.builtin.service:
         name: docker
         state: started
         enabled: true
 
-    # Use community.docker.docker_login for Docker Hub login
+    # Login to Docker Hub
     - name: Login to Docker Hub
       community.docker.docker_login:
         username: "{{ DOCKER_USERNAME }}"
         password: "{{ DOCKER_PASSWORD }}"
 
-    # Clone Frontend repository (idempotent with force: true)
+    # Clone Frontend repository with idempotent behavior
     - name: Clone Frontend repository
       ansible.builtin.git:
         repo: "{{ frontend_repo }}"
         dest: "{{ frontend_dir }}"
-        force: true  # Ensures idempotent behavior
+        force: true  # Ensures local changes are overridden
+        version: HEAD  # Ensures the latest commit on the default branch is checked out
 
-    # Clone Backend repository (idempotent with force: true)
+    # Clone Backend repository with idempotent behavior
     - name: Clone Backend repository
       ansible.builtin.git:
         repo: "{{ backend_repo }}"
         dest: "{{ backend_dir }}"
-        force: true  # Ensures idempotent behavior
+        force: true  # Ensures local changes are overridden
+        version: HEAD  # Ensures the latest commit on the default branch is checked out
 
-    # Generate timestamp using environment for inline TZ variable
+    # Generate timestamp for unique Docker image tag in EST timezone
     - name: Generate timestamp for unique Docker image tag in EST timezone
       ansible.builtin.command: date +%Y-%m-%d-%H%M
       environment:
-        TZ: America/New_York  # Defined TZ in the environment explicitly
+        TZ: America/New_York
       register: timestamp
-      changed_when: false  # Avoid marking this task as changed unnecessarily
+      changed_when: false
 
     # Build and push Frontend Docker image
     - name: Build and push Frontend Docker image
@@ -68,7 +70,7 @@
         docker push armanlamba/sharks:frontend-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/frontend
-      changed_when: true  # Explicitly marks as changed
+      changed_when: true
 
     # Build and push Backend Docker image
     - name: Build and push Backend Docker image
@@ -77,7 +79,7 @@
         docker push armanlamba/sharks:backend-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/backend
-      changed_when: true  # Explicitly marks as changed
+      changed_when: true
 
     # Build and push MySQL Docker image
     - name: Build and push MySQL Docker image
@@ -86,4 +88,4 @@
         docker push armanlamba/sharks:mysql-v-{{ timestamp.stdout }}
       args:
         chdir: /var/www/backend
-      changed_when: true  # Explicitly marks as changed
+      changed_when: true
