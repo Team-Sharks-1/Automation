@@ -58,17 +58,25 @@
         version: main
         force: true
 
-    # Replace localhost with public IP in Frontend code
+# Replace localhost with public IP in Frontend code
     - name: Replace localhost with public IP in Frontend code
       ansible.builtin.shell: |
-        find {{ frontend_dir }} -type f \( -name "*.js" -o -name "*.ts" -o -name "*.json" \) -exec sed -i "s/localhost/{{ ansible_host }}/g" {} \;
+        find {{ frontend_dir }} -type f \( -name "*.js" -o -name "*.ts" -o -name "*.json" \) -exec sed -i "s/localhost/{{ ansible_host }}/g" {} \; -exec echo "Modified: {}" \;
       register: frontend_replace_output
-
+    
+    - name: Debug Frontend Replacement Output
+      ansible.builtin.debug:
+        msg: "{{ frontend_replace_output.stdout_lines }}"
+    
     # Replace localhost with public IP in Backend code
     - name: Replace localhost with public IP in Backend code
       ansible.builtin.shell: |
-        find {{ backend_dir }} -type f \( -name "*.js" -o -name "*.ts" -o -name "*.json" \) -exec sed -i "s/localhost/{{ ansible_host }}/g" {} \;
+        find {{ backend_dir }} -type f \( -name "*.js" -o -name "*.ts" -o -name "*.json" \) -exec sed -i "s/localhost/{{ ansible_host }}/g" {} \; -exec echo "Modified: {}" \;
       register: backend_replace_output
+    
+    - name: Debug Backend Replacement Output
+      ansible.builtin.debug:
+        msg: "{{ backend_replace_output.stdout_lines }}"
 
     - name: Generate timestamp for unique Docker image tag in EST timezone
       ansible.builtin.shell: |
