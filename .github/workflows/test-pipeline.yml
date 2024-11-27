@@ -119,17 +119,6 @@ jobs:
       #     pip install ansible-lint
       # - name: Lint Ansible Playbook
       #   run: ansible-lint ansible/deploy.yml
-
- #      - name: Run Ansible Playbook
- #        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}"
- #        env:
- #          ANSIBLE_HOST_KEY_CHECKING: false
- #          # DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
- #          # DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
- # # Changed: Generate timestamp and set it as a step output
- #      - name: Generate timestamp for dynamic Docker tags
- #        id: generate_timestamp  # Added ID to access outputs
- #        run: echo "::set-output name=timestamp::$(TZ=America/New_York date +'%Y-%m-%d-%H%M')"
       - name: Run Ansible Playbook
         id: ansible_run
         run: |
@@ -160,12 +149,7 @@ jobs:
         run: |
           echo "Using the Ansible-generated timestamp: ${{ env.timestamp }}"
           echo "This timestamp will be reused: ${{ steps.extract_timestamp.outputs.timestamp }}"
-   
-      
-      # - name: Use Extracted Timestamp
-      #   run: |
-      #     echo "Timestamp extracted from Ansible: ${{ steps.extract_timestamp.outputs.timestamp }}"
-      #     echo "This timestamp will be used in subsequent steps."
+  
         
   # test_pipeline:
   #   name: Test Pipeline
