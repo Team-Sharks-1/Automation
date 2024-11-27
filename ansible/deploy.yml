@@ -138,3 +138,40 @@
       ansible.builtin.command: sudo docker push armanlamba/sharks:{{ mysql_tag }}
       register: mysql_push_output
       changed_when: "'pushed' in mysql_push_output.stdout"
+   
+    # Ensure Docker network exists
+    - name: Create Docker network
+      ansible.builtin.command: |
+        docker network inspect my-network || docker network create my-network
+      args:
+        warn: false
+
+    # Run Frontend container
+    - name: Run Frontend container
+      ansible.builtin.command: |
+        docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:{{ frontend_tag }}
+      args:
+        warn: false
+
+    # Run MySQL container
+    - name: Run MySQL container
+      ansible.builtin.command: |
+        docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:{{ mysql_tag }}
+      args:
+        warn: false
+
+    # Run Backend container
+    - name: Run Backend container
+      ansible.builtin.command: |
+        docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:{{ backend_tag }}
+      args:
+        warn: false
+
+    # Verify Running Containers
+    - name: List Running Containers
+      ansible.builtin.command: docker ps
+      register: docker_ps_output
+
+    - name: Debug Running Containers
+      ansible.builtin.debug:
+        var: docker_ps_output.stdout
