@@ -149,8 +149,6 @@
     - name: Create Docker network
       ansible.builtin.command: |
         docker network inspect my-network || docker network create my-network
-      args:
-        warn: false
 
     # Run Frontend container
     - name: Run Frontend container
