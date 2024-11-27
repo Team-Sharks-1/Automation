@@ -148,26 +148,28 @@
     # Ensure Docker network exists
     - name: Create Docker network
       ansible.builtin.command: |
-        docker network inspect my-network || docker network create my-network
+        sudo docker network inspect my-network || sudo docker network create my-network
+      # args:
+      #   executable: /bin/bash
 
     # Run Frontend container
     - name: Run Frontend container
       ansible.builtin.command: |
-        docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:{{ frontend_tag }}
+        sudo docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:{{ frontend_tag }}
       args:
         warn: false
 
     # Run MySQL container
     - name: Run MySQL container
       ansible.builtin.command: |
-        docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:{{ mysql_tag }}
+        sudo docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:{{ mysql_tag }}
       args:
         warn: false
 
     # Run Backend container
     - name: Run Backend container
       ansible.builtin.command: |
-        docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:{{ backend_tag }}
+        sudo docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:{{ backend_tag }}
       args:
         warn: false
 
