@@ -148,7 +148,7 @@
     # Ensure Docker network exists
     - name: Create Docker network
       ansible.builtin.command: |
-        sudo docker network inspect my-network || sudo docker network create my-network
+        sudo docker network create my-network
       # args:
       #   executable: /bin/bash
 
