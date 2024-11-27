@@ -83,7 +83,6 @@
     - name: Debug Backend Replacement Output
       ansible.builtin.debug:
         msg: "{{ backend_replace_output.stdout_lines }}"
-    }}"
 
     - name: Generate timestamp for unique Docker image tag in EST timezone
       ansible.builtin.shell: |
