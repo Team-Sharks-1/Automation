@@ -1,9 +1,6 @@
 name: CI/CD Pipeline
 
 on:
-  # push:
-  #   branches:
-  #     - main
   workflow_dispatch:
 
 permissions:
@@ -41,7 +38,17 @@ jobs:
           ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
           ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
         run: terraform init
+  
+      # Added Terraform validation to ensure the code is valid
+      - name: Terraform Validate
+        working-directory: infra
+        run: terraform validate
 
+      # Added Terraform format check to ensure consistent formatting
+      - name: Terraform Format Check
+        working-directory: infra
+        run: terraform fmt -check
+        
       - name: Terraform Plan
         working-directory: infra
         env:
@@ -75,12 +82,13 @@ jobs:
           echo "public_ip"
           # echo "::set-output name=public_ip::$IP"
           echo "::set-output name=public_ip::$IP"  # Sets as step-level output for compatibility
-
-
+ 
   ansible_deploy:
     name: Run Ansible Playbook
     runs-on: ubuntu-latest
     needs: terraform_apply
+    outputs:
+      timestamp: ${{ steps.extract_timestamp.outputs.timestamp }}
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v3
@@ -89,7 +97,6 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y ansible sshpass
-
       - name: Set Up SSH Key
         uses: webfactory/ssh-agent@v0.5.4
         with:
@@ -99,91 +106,45 @@ jobs:
         run: |
           echo "Public IP from terraform_apply:"
           echo ${{ needs.terraform_apply.outputs.public_ip }} 
-
       - name: Create Ansible Inventory
         run: |
           mkdir -p ansible
           echo "[web]" > ansible/hosts.ini
           echo "${{ needs.terraform_apply.outputs.public_ip }} ansible_user=azureuser" >> ansible/hosts.ini
           cat ansible/hosts.ini  # Print inventory for debugging
-
-      # - name: Print Working Directory
-      #   run: pwd  # Prints the current working directory
-      
-      # - name: List Files in Root Directory
-      #   run: ls -al  # Lists all files in the root directory of the repository
-      
-      # - name: List Files Recursively
-      #   run: ls -R  # Lists all files and subdirectories recursively for detailed inspection
-      
-
+      # Added Ansible lint check for playbook validation
+      # - name: Install Ansible Lint
+      #   run: |
+      #     pip install ansible-lint
+      # - name: Lint Ansible Playbook
+      #   run: ansible-lint ansible/deploy.yml
       - name: Run Ansible Playbook
-        run: ansible-playbook -i ansible/hosts.ini ansible/deploy.yml -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}"
+        id: ansible_run
+        run: |
+          ansible-playbook -i ansible/hosts.ini ansible/deploy.yml \
+          -e "DOCKER_USERNAME=${{ secrets.DOCKER_USERNAME }}" \
+          -e "DOCKER_PASSWORD=${{ secrets.DOCKER_PASSWORD }}" \
+          | tee ansible_output.log
         env:
           ANSIBLE_HOST_KEY_CHECKING: false
-          # DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
-          # DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
 
-  # build_and_push_docker:
-  #   name: Build and Push Docker Image
-  #   runs-on: ubuntu-latest
-  #   needs: ansible_deploy
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@v3
+      - name: Extract Timestamp from Ansible Output
+        id: extract_timestamp
+        run: |
+          TIMESTAMP=$(grep -oP 'Generated timestamp: \K.*' ansible_output.log | tr -d '"')
+          if [ -z "$TIMESTAMP" ]; then
+            echo "No timestamp found in Ansible output!" >&2
+            exit 1
+          fi
+          echo "Extracted timestamp: $TIMESTAMP"
+          echo "timestamp=$TIMESTAMP" >> $GITHUB_ENV
+          echo "::set-output name=timestamp::$TIMESTAMP"
+      
+      - name: Debug Sanitized Timestamp
+        run: |
+          echo "Sanitized timestamp: ${{ env.timestamp }}"
 
-  #     - name: Set up Docker Buildx
-  #       uses: docker/setup-buildx-action@v2
-
-  #     - name: Login to Docker Hub
-  #       uses: docker/login-action@v2
-  #       with:
-  #         username: ${{ secrets.DOCKER_USERNAME }}
-  #         password: ${{ secrets.DOCKER_PASSWORD }}
-
-  #     - name: Build Docker Image
-  #       run: |
-  #         docker build -t armanlamba/sharks:latest .
-
-  #     - name: Push Docker Image
-  #       run: |
-  #         docker push armanlamba/sharks:latest
-
-  # terraform_destroy:
-  #   name: Terraform Destroy
-  #   runs-on: ubuntu-latest
-  #   if: ${{ github.event_name == 'workflow_dispatch' }}
-  #   steps:
-  #     - name: Checkout Repository
-  #       uses: actions/checkout@v3
-
-  #     - name: Setup Terraform
-  #       uses: hashicorp/setup-terraform@v2
-  #       with:
-  #         terraform_version: 'latest'
-
-  #     - name: Azure Login
-  #       uses: azure/login@v1
-  #       with:
-  #         client-id: ${{ secrets.AZURE_CLIENT_ID }}
-  #         tenant-id: ${{ secrets.AZURE_TENANT_ID }}
-  #         subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  #         allow-no-subscriptions: false
-
-  #     - name: Terraform Init
-  #       working-directory: infra
-  #       env:
-  #         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  #         ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  #         ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  #         ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  #       run: terraform init
-
-  #     - name: Terraform Destroy
-  #       working-directory: infra
-  #       env:
-  #         ARM_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-  #         ARM_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
-  #         ARM_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-  #         ARM_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
-  #       run: terraform destroy -auto-approve
+      - name: Use Extracted Timestamp
+        run: |
+          echo "Using the Ansible-generated timestamp: ${{ env.timestamp }}"
+          echo "This timestamp will be reused: ${{ steps.extract_timestamp.outputs.timestamp }}"
