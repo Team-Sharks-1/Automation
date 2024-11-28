@@ -145,41 +145,41 @@
       register: mysql_push_output
       changed_when: "'pushed' in mysql_push_output.stdout"
    
-    - name: Create Docker network
-      ansible.builtin.shell: |
-        docker network inspect my-network || docker network create my-network
-      args:
-        executable: /bin/bash
+    # - name: Create Docker network
+    #   ansible.builtin.shell: |
+    #     docker network inspect my-network || docker network create my-network
+    #   args:
+    #     executable: /bin/bash
 
-    # Run Frontend container with idempotency
-    - name: Run Frontend container
-      ansible.builtin.shell: |
-        docker ps --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container" || \
-        docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:{{ frontend_tag }}
-      args:
-        executable: /bin/bash
+    # # Run Frontend container with idempotency
+    # - name: Run Frontend container
+    #   ansible.builtin.shell: |
+    #     docker ps --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container" || \
+    #     docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:{{ frontend_tag }}
+    #   args:
+    #     executable: /bin/bash
     
-    # Run MySQL container with idempotency
-    - name: Run MySQL container
-      ansible.builtin.shell: |
-        docker ps --filter "name=mysql-container" --format "{{.Names}}" | grep -q "mysql-container" || \
-        docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:{{ mysql_tag }}
-      args:
-        executable: /bin/bash
+    # # Run MySQL container with idempotency
+    # - name: Run MySQL container
+    #   ansible.builtin.shell: |
+    #     docker ps --filter "name=mysql-container" --format "{{.Names}}" | grep -q "mysql-container" || \
+    #     docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:{{ mysql_tag }}
+    #   args:
+    #     executable: /bin/bash
     
-    # Run Backend container with idempotency
-    - name: Run Backend container
-      ansible.builtin.shell: |
-        docker ps --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container" || \
-        docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:{{ backend_tag }}
-      args:
-        executable: /bin/bash
+    # # Run Backend container with idempotency
+    # - name: Run Backend container
+    #   ansible.builtin.shell: |
+    #     docker ps --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container" || \
+    #     docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:{{ backend_tag }}
+    #   args:
+    #     executable: /bin/bash
 
-    # Verify Running Containers
-    - name: List Running Containers
-      ansible.builtin.command: docker ps
-      register: docker_ps_output
+    # # Verify Running Containers
+    # - name: List Running Containers
+    #   ansible.builtin.command: docker ps
+    #   register: docker_ps_output
 
-    - name: Debug Running Containers
-      ansible.builtin.debug:
-        var: docker_ps_output.stdout
+    # - name: Debug Running Containers
+    #   ansible.builtin.debug:
+    #     var: docker_ps_output.stdout
