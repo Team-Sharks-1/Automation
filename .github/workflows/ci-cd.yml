@@ -153,50 +153,31 @@ jobs:
         run: |
           ssh -o StrictHostKeyChecking=no azureuser@${{ needs.terraform_apply.outputs.public_ip }} << EOF
           sudo docker network inspect my-network || sudo docker network create my-network
-          sudo docker ps --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container" || \
+                    
+          # Frontend container
+          if sudo docker ps -a --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container"; then
+            sudo docker rm -f frontend-container
+          fi
           sudo docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
-          sudo docker ps --filter "name=mysql-container" --format "{{.Names}}" | grep -q "mysql-container" || \
+          
+          # MySQL container
+          if sudo docker ps -a --filter "name=mysql-container" --format "{{.Names}}" | grep -q "mysql-container"; then
+            sudo docker rm -f mysql-container
+          fi
           sudo docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:mysql-v-${{ steps.extract_timestamp.outputs.timestamp }}
-          sudo docker ps --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container" || \
+          
+          # Backend container
+          if sudo docker ps -a --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container"; then
+            sudo docker rm -f backend-container
+          fi
           sudo docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
           sudo docker ps -a
           EOF
-
-      # # Docker Container Deployment
-      # - name: Ensure Docker is Installed
-      #   run: |
-      #     if ! command -v docker &> /dev/null
-      #     then
-      #       echo "Docker not found, installing..."
-      #       sudo apt-get update
-      #       sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
-      #       curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
-      #       echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
-      #       sudo apt-get update
-      #       sudo apt-get install -y docker-ce docker-ce-cli containerd.io
-      #     else
-      #       echo "Docker is already installed"
-      #     fi
-      #   shell: bash
-
-      # - name: Create Docker Network
-      #   run: |
-      #     docker network inspect my-network || docker network create my-network
-
-      # - name: Deploy Frontend Container
-      #   run: |
-      #     docker ps --filter "name=frontend-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "frontend-container" || \
-      #     docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
-
-      # - name: Deploy MySQL Container
-      #   run: |
-      #     docker ps --filter "name=mysql-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "mysql-container" || \
-      #     docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:mysql-v-${{ steps.extract_timestamp.outputs.timestamp }}
-
-      # - name: Deploy Backend Container
-      #   run: |
-      #     docker ps --filter "name=backend-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "backend-container" || \
-      #     docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
-
+      # sudo docker ps --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container" || \
+      # sudo docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+      # sudo docker ps --filter "name=mysql-container" --format "{{.Names}}" | grep -q "mysql-container" || \
+      # sudo docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:mysql-v-${{ steps.extract_timestamp.outputs.timestamp }}
+      # sudo docker ps --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container" || \
+      # sudo docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
       # - name: Verify Running Containers
       #   run: docker ps
