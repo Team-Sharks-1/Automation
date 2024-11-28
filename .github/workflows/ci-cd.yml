@@ -168,7 +168,7 @@ jobs:
           
           # Wait for MySQL to be ready
           echo "Waiting for MySQL to accept connections..."
-          until sudo docker exec mysql-container mysqladmin ping -h "localhost" --silent; do
+          until sudo docker exec mysql-container mysql -h "localhost" -u root -proot -e "SHOW DATABASES;" > /dev/null 2>&1; do
             echo "MySQL is not ready yet. Retrying in 5 seconds..."
             sleep 5
           done
