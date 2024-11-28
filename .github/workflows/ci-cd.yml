@@ -152,17 +152,14 @@ jobs:
       - name: Deploy Containers on Terraform VM
         run: |
           ssh -o StrictHostKeyChecking=no azureuser@${{ needs.terraform_apply.outputs.public_ip }} << EOF
-          docker network inspect my-network || docker network create my-network
-          docker ps --filter "name=frontend-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "frontend-container" || \
-          docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
-          docker ps --filter "name=mysql-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "mysql-container" || \
-          docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:mysql-v-${{ steps.extract_timestamp.outputs.timestamp }}
-          docker ps --filter "name=backend-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "backend-container" || \
-          docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+          sudo docker network inspect my-network || sudo docker network create my-network
+          sudo docker ps --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container" || \
+          sudo docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+          sudo docker ps --filter "name=mysql-container" --format "{{.Names}}" | grep -q "mysql-container" || \
+          sudo docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:mysql-v-${{ steps.extract_timestamp.outputs.timestamp }}
+          sudo docker ps --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container" || \
+          sudo docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
           EOF
-
-
-
 
       # # Docker Container Deployment
       # - name: Ensure Docker is Installed
