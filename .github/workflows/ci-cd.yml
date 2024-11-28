@@ -148,3 +148,31 @@ jobs:
         run: |
           echo "Using the Ansible-generated timestamp: ${{ env.timestamp }}"
           echo "This timestamp will be reused: ${{ steps.extract_timestamp.outputs.timestamp }}"
+
+      # Docker Container Deployment
+      - name: Install Docker
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y docker.io
+
+      - name: Create Docker Network
+        run: |
+          docker network inspect my-network || docker network create my-network
+
+      - name: Deploy Frontend Container
+        run: |
+          docker ps --filter "name=frontend-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "frontend-container" || \
+          docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+
+      - name: Deploy MySQL Container
+        run: |
+          docker ps --filter "name=mysql-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "mysql-container" || \
+          docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:mysql-v-${{ steps.extract_timestamp.outputs.timestamp }}
+
+      - name: Deploy Backend Container
+        run: |
+          docker ps --filter "name=backend-container" --format "{{ '{{' }}.Names{{ '}}' }}" | grep -q "backend-container" || \
+          docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+
+      - name: Verify Running Containers
+        run: docker ps
