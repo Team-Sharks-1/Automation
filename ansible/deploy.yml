@@ -58,7 +58,7 @@
         version: main
         force: true
 
-    Replace localhost with public IP in Frontend code (all files, excluding node_modules)
+    # Replace localhost with public IP in Frontend code (all files, excluding node_modules)
     - name: Replace localhost with public IP in Frontend code
       ansible.builtin.shell: |
         find {{ frontend_dir }} \
