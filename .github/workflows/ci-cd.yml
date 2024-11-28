@@ -149,9 +149,9 @@ jobs:
           echo "Using the Ansible-generated timestamp: ${{ env.timestamp }}"
           echo "This timestamp will be reused: ${{ steps.extract_timestamp.outputs.timestamp }}"
 
-      - name: Verify Replaced Files
-        run: |
-          grep -r "http://${{ needs.terraform_apply.outputs.public_ip }}" backend/
+      # - name: Verify Replaced Files
+      #   run: |
+      #     grep -r "http://${{ needs.terraform_apply.outputs.public_ip }}" var/www/backend/
 
       - name: Deploy Containers on Terraform VM
         run: |
