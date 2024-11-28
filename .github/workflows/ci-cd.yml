@@ -149,6 +149,10 @@ jobs:
           echo "Using the Ansible-generated timestamp: ${{ env.timestamp }}"
           echo "This timestamp will be reused: ${{ steps.extract_timestamp.outputs.timestamp }}"
 
+      - name: Verify Replaced Files
+        run: |
+          grep -r "http://${{ needs.terraform_apply.outputs.public_ip }}" backend/
+
       - name: Deploy Containers on Terraform VM
         run: |
           ssh -o StrictHostKeyChecking=no azureuser@${{ needs.terraform_apply.outputs.public_ip }} << EOF
@@ -183,6 +187,7 @@ jobs:
             --network my-network \
             -p 3001:3001 \
             -e DB_HOST=mysql-container \
+            -e CORS_ORIGIN=http://${{ needs.terraform_apply.outputs.public_ip }}:3000 \
             armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
 
           sudo docker ps -a
