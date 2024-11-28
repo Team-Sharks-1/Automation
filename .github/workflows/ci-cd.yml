@@ -159,6 +159,7 @@ jobs:
           sudo docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:mysql-v-${{ steps.extract_timestamp.outputs.timestamp }}
           sudo docker ps --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container" || \
           sudo docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+          sudo docker ps -a
           EOF
 
       # # Docker Container Deployment
