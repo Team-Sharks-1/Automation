@@ -151,26 +151,29 @@
       args:
         executable: /bin/bash
 
-    # Run Frontend container
+    # Run Frontend container with idempotency
     - name: Run Frontend container
-      ansible.builtin.command: |
-        sudo docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:{{ frontend_tag }}
+      ansible.builtin.shell: |
+        docker ps --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container" || \
+        docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:{{ frontend_tag }}
       args:
-        warn: false
-
-    # Run MySQL container
+        executable: /bin/bash
+    
+    # Run MySQL container with idempotency
     - name: Run MySQL container
-      ansible.builtin.command: |
-        sudo docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:{{ mysql_tag }}
+      ansible.builtin.shell: |
+        docker ps --filter "name=mysql-container" --format "{{.Names}}" | grep -q "mysql-container" || \
+        docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:{{ mysql_tag }}
       args:
-        warn: false
-
-    # Run Backend container
+        executable: /bin/bash
+    
+    # Run Backend container with idempotency
     - name: Run Backend container
-      ansible.builtin.command: |
-        sudo docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:{{ backend_tag }}
+      ansible.builtin.shell: |
+        docker ps --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container" || \
+        docker run -d --name backend-container --network my-network -p 3001:3001 armanlamba/sharks:{{ backend_tag }}
       args:
-        warn: false
+        executable: /bin/bash
 
     # Verify Running Containers
     - name: List Running Containers
