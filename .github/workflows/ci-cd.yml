@@ -190,10 +190,10 @@ jobs:
 
       - name: Cleanup Unused Docker Images and Containers
         run: |
-          ssh -o StrictHostKeyChecking=no azureuser@${{ needs.terraform_apply.outputs.public_ip }} << EOF
+          ssh -o StrictHostKeyChecking=no azureuser@${{ needs.terraform_apply.outputs.public_ip }} <<EOF
           echo "Cleaning up unused Docker resources..."
           sudo docker system prune -af --volumes
-          EOF  
+          EOF
       # sudo docker ps --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container" || \
       # sudo docker run -d --name frontend-container --network my-network -p 3000:3000 armanlamba/sharks:frontend-v-${{ steps.extract_timestamp.outputs.timestamp }}
       # sudo docker ps --filter "name=mysql-container" --format "{{.Names}}" | grep -q "mysql-container" || \
