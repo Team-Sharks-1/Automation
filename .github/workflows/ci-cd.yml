@@ -166,19 +166,18 @@ jobs:
           fi
           sudo docker run -d --name mysql-container --network my-network -p 3306:3306 armanlamba/sharks:mysql-v-${{ steps.extract_timestamp.outputs.timestamp }}
           
+          # Wait for MySQL to be ready
+          echo "Waiting for MySQL to accept connections..."
+          while ! sudo docker exec mysql-container mysqladmin ping -h localhost --silent; do
+            echo "MySQL is not ready yet. Retrying in 2 seconds..."
+            sleep 2
+          done
+          echo "MySQL is ready and accepting connections."
+
           # Backend container
           if sudo docker ps -a --filter "name=backend-container" --format "{{.Names}}" | grep -q "backend-container"; then
             sudo docker rm -f backend-container
           fi
-
-          # Wait for MySQL container to be ready
-          echo "Waiting for MySQL container to be ready..."
-          while ! sudo docker ps --filter "name=mysql-container" --filter "status=running" --format "{{.Names}}" | grep -q "mysql-container"; do
-            echo "MySQL container is not ready yet. Retrying in 2 seconds..."
-            sleep 2
-          done
-          echo "MySQL container is running."
-
           sudo docker run -d \
             --name backend-container \
             --network my-network \
@@ -189,6 +188,7 @@ jobs:
             -e DB_PASSWORD=root \
             -e DB_NAME=urban_connect \
             armanlamba/sharks:backend-v-${{ steps.extract_timestamp.outputs.timestamp }}
+
           sudo docker ps -a
           EOF
       # sudo docker ps --filter "name=frontend-container" --format "{{.Names}}" | grep -q "frontend-container" || \
